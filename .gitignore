@@ -15,6 +15,8 @@
 
 # next.js
 /.next/
+/.next-portfolio/
+/.netlify/
 /out/
 
 # production
@@ -30,8 +32,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files: real keys stay local; the template is committed
 .env*
+!.env.example
+
+# local database (execution history, outputs, ledger)
+/data/
 
 # vercel
 .vercel
@@ -39,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local Netlify / Deno emulation artifacts
+deno.lock

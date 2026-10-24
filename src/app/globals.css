@@ -1,26 +1,308 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Design tokens. Dark is the default theme; light is a selected theme with
+ * its own steps, not an inversion. Chart hues come from a CVD-validated
+ * categorical palette: LOCAL = aqua, CLOUD = blue, POLICY-BLOCKED = orange.
+ * Red is reserved for failures (offline, errors), never for a policy block.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #ececee;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --fg: #0a0a0b;
+  --fg-2: #4b4b52;
+  --fg-3: #71717a;
+  --fg-4: #a1a1aa;
+  --ring: #0a0a0b;
+
+  --local: #1baf7a;
+  --local-fg: #0a7a54;
+  --local-soft: rgba(27, 175, 122, 0.1);
+  --local-line: rgba(27, 175, 122, 0.35);
+  --cloud: #2a78d6;
+  --cloud-fg: #1d5fb3;
+  --cloud-soft: rgba(42, 120, 214, 0.09);
+  --cloud-line: rgba(42, 120, 214, 0.32);
+  --blocked: #eb6834;
+  --blocked-fg: #b5451a;
+  --blocked-soft: rgba(235, 104, 52, 0.1);
+  --blocked-line: rgba(235, 104, 52, 0.35);
+
+  --ok: #0ca30c;
+  --ok-fg: #006300;
+  --warn: #fab219;
+  --warn-fg: #8a5a00;
+  --warn-soft: rgba(250, 178, 25, 0.14);
+  --danger: #d03b3b;
+  --danger-fg: #b42323;
+  --danger-soft: rgba(208, 59, 59, 0.09);
+
+  --cls-public: #71717a;
+  --cls-internal: #5a7299;
+  --cls-confidential: #b7791f;
+  --cls-restricted: #c53030;
+
+  --grid: #ececee;
+  --axis: #d4d4d8;
+  --shadow-pop: 0 8px 24px rgba(10, 10, 11, 0.12), 0 2px 6px rgba(10, 10, 11, 0.06);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #08080a;
+  --surface: #0f0f12;
+  --surface-2: #151519;
+  --surface-3: #1c1c21;
+  --line: #222228;
+  --line-strong: #2e2e36;
+  --fg: #ededef;
+  --fg-2: #a6a6b0;
+  --fg-3: #74747f;
+  --fg-4: #52525b;
+  --ring: #ededef;
+
+  --local: #199e70;
+  --local-fg: #4fd1a3;
+  --local-soft: rgba(25, 158, 112, 0.12);
+  --local-line: rgba(25, 158, 112, 0.42);
+  --cloud: #3987e5;
+  --cloud-fg: #82b4f5;
+  --cloud-soft: rgba(57, 135, 229, 0.12);
+  --cloud-line: rgba(57, 135, 229, 0.42);
+  --blocked: #d95926;
+  --blocked-fg: #f2906a;
+  --blocked-soft: rgba(217, 89, 38, 0.12);
+  --blocked-line: rgba(217, 89, 38, 0.4);
+
+  --ok: #0ca30c;
+  --ok-fg: #4ccf4c;
+  --warn: #fab219;
+  --warn-fg: #f5c451;
+  --warn-soft: rgba(250, 178, 25, 0.11);
+  --danger: #d03b3b;
+  --danger-fg: #f07272;
+  --danger-soft: rgba(208, 59, 59, 0.13);
+
+  --cls-public: #8b8b96;
+  --cls-internal: #8ea4c8;
+  --cls-confidential: #e0a84a;
+  --cls-restricted: #f07272;
+
+  --grid: #1b1b20;
+  --axis: #2e2e36;
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-4: var(--fg-4);
+  --color-local: var(--local);
+  --color-local-fg: var(--local-fg);
+  --color-local-soft: var(--local-soft);
+  --color-local-line: var(--local-line);
+  --color-cloud: var(--cloud);
+  --color-cloud-fg: var(--cloud-fg);
+  --color-cloud-soft: var(--cloud-soft);
+  --color-cloud-line: var(--cloud-line);
+  --color-blocked: var(--blocked);
+  --color-blocked-fg: var(--blocked-fg);
+  --color-blocked-soft: var(--blocked-soft);
+  --color-blocked-line: var(--blocked-line);
+  --color-ok: var(--ok);
+  --color-ok-fg: var(--ok-fg);
+  --color-warn: var(--warn);
+  --color-warn-fg: var(--warn-fg);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --text-2xs: 10.5px;
+  --text-2xs--line-height: 14px;
+  --text-xs: 11.5px;
+  --text-xs--line-height: 16px;
+  --text-sm: 12.5px;
+  --text-sm--line-height: 18px;
+  --text-base: 13.5px;
+  --text-base--line-height: 20px;
+  --animate-fade-in: fade-in 180ms ease-out both;
+  --animate-rise: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pulse-dot: pulse-dot 2.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
   }
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--cloud) 35%, transparent);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 4px;
+}
+
+/* Diagonal texture marks simulated (DEMO) output so it is never mistaken for model output. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--warn) 9%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cloud) 70%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Minimal Markdown rendering for model output. */
+.prose-output {
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--fg);
+}
+.prose-output p {
+  margin: 0 0 8px;
+}
+.prose-output ul,
+.prose-output ol {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+.prose-output ul {
+  list-style: disc;
+}
+.prose-output ol {
+  list-style: decimal;
+}
+.prose-output li {
+  margin: 2px 0;
+}
+.prose-output strong {
+  font-weight: 600;
+}
+.prose-output h4 {
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+.prose-output code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.prose-output pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+.prose-output table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 10px;
+  font-size: 12px;
+}
+.prose-output th,
+.prose-output td {
+  border-bottom: 1px solid var(--line);
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-output th {
+  color: var(--fg-2);
+  font-weight: 500;
 }

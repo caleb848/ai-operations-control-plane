@@ -1,0 +1,18 @@
+# Public portfolio deployment (DEMO only).
+#
+# Safety does not depend on this file: the deployment mode is inlined at build
+# time, any Netlify build is forced into portfolio mode (NETLIFY is set), and
+# the server re-detects hosting at runtime. Never add provider API keys to
+# this site's environment; they would be ignored, but they don't belong here.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Netlify functions run on the build's Node.js version; portfolio storage uses node:sqlite (Node 22.13+).
+  NODE_VERSION = "24"
+  DEPLOYMENT_MODE = "portfolio"
+  AI_LIVE_MODE = "false"
+  DEFAULT_PROVIDER = "mock"
+  NEXT_TELEMETRY_DISABLED = "1"

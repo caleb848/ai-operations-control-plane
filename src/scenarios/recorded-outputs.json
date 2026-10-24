@@ -1,0 +1,112 @@
+{
+  "1acdaa6f689b4b3d7e8a384cdfbb0c4733a6b32c87c5d7042cb5f5d72cf44337:qwen3.5:9b": {
+    "model": "qwen3.5:9b",
+    "modelName": "Qwen 3.5 9B",
+    "recordedAt": "2026-10-24T04:41:58.187Z",
+    "latencyMs": 13002,
+    "outputTokens": 118,
+    "outputTps": 22.4,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "- Lumen Transit has launched real-time bus arrival alerts for all 42 routes, notifying riders via the free app when their bus is five, ten, or fifteen minutes away using live GPS data that updates every 20 seconds.  \n- The update introduces service-change notices for detours and cancellations and a new accessibility feature that announces arrivals through screen readers for visually impaired passengers.  \n- While alerts are available today, service-change notices will expand to all routes by the end of next month, with plans to add similar features to two light-rail lines in the spring."
+  },
+  "1acdaa6f689b4b3d7e8a384cdfbb0c4733a6b32c87c5d7042cb5f5d72cf44337:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:41:42.287Z",
+    "latencyMs": 15855,
+    "outputTokens": 110,
+    "outputTps": 16.8,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "* **Real-time arrival alerts:** Riders can now receive notifications for all 42 bus routes when a vehicle is five, ten, or fifteen minutes away, powered by live GPS data.\n* **Enhanced rider features:** The update introduces service-change notices for detours and cancellations, as well as a new accessibility setting for screen reader compatibility.\n* **Future expansions:** Service-change notices will roll out to all routes by the end of next month, with plans to add alerts to two light-rail lines in the spring."
+  },
+  "f2b17715a5c867b11c5f73517a357245b34226f5d17ece084972fee2237754ab:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:30:15.542Z",
+    "latencyMs": 38908,
+    "outputTokens": 262,
+    "outputTps": 16.4,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "**Account Team Readout: Corvane Dental Group**\n\n**Client Objectives**\n*   Restore new-patient bookings to Q1 levels by the end of Q2.\n*   Optimize and fix the mobile booking flow prior to the Q3 expansion.\n*   Launch a new referral program for existing patients.\n\n**Key Risks**\n*   **Revenue Risk:** $55K of planned revenue is at risk if the three new clinic openings are delayed.\n*   **Stakeholder Skepticism:** The Director of Operations is wary of paid social due to past negative experiences.\n*   **Data & Compliance:** Incomplete booking data exists for two clinics due to a system migration, and patient testimonials are currently not approved by legal.\n*   **Timeline Pressure:** The March 14 steering review is approaching without measurable results yet shown.\n\n**Recommended Next Steps**\n1.  **Data Audit:** Reconcile missing booking data from the two clinics affected by the system migration.\n2.  **Mobile UX Fix:** Prioritize the mobile booking flow to address the high 38% abandonment rate.\n3.  **Performance Proof:** Develop a small-scale pilot or \"quick win\" to demonstrate measurable results before the March 14 review."
+  },
+  "dbc5bdf50b2525fb93f0e10bdfd35661d1a74e2cceb0c2cfe231a61e9acdbda6:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:23:30.816Z",
+    "latencyMs": 6732,
+    "outputTokens": 78,
+    "outputTps": 15.3,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "Based on the provided document, here are the details from the client meeting brief:\n\n**Decisions**\n* Move the launch to May\n* Reduce paid search by 20%\n\n**Owners**\n* The document does not specify owners for the decisions.\n\n**Open Risks**\n* Retailer listing fees not yet approved\n* Pricing strategy for the club channel unresolved"
+  },
+  "938720351eb8a358eab5fa7c42c1c496334f1fa98b47ea2d50681f98d564a8a3:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:23:10.178Z",
+    "latencyMs": 10971,
+    "outputTokens": 100,
+    "outputTps": 15,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "The employee survey comments have been classified as follows:\n\n| Theme | Comment | Sentiment |\n| :--- | :--- | :--- |\n| **Workload** | 'Workload has been heavy since the reorg.' | Negative |\n| **Benefits** | 'Love the new flexible hours.' | Positive |\n| **Career Development** | 'Not enough clarity on promotion criteria.' | Negative |\n| **Culture** | 'Team lunches helped morale.' | Positive |"
+  },
+  "799ad60b1ec4e37e3b2c43b903dda6c8b56175ebad75092eb60340c43d121655:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:22:58.950Z",
+    "latencyMs": 9397,
+    "outputTokens": 87,
+    "outputTps": 12.5,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "**Project Status Update**\n\n*   **Status:** Data migration is 80% complete.\n*   **Testing:** QA has identified 14 defects, including 3 critical issues.\n*   **Timeline:** The go-live date remains scheduled for the 21st, contingent upon resolving the current defects.\n\n**Blockers**\n*   Vendor API rate limits are currently slowing down integration testing."
+  },
+  "cb58e3968de3ba501a03bd8bdcc7ef62c630f4adff2736a912ba0133b159db9f:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:22:51.926Z",
+    "latencyMs": 6914,
+    "outputTokens": 32,
+    "outputTps": 15.8,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "* **Sam**: Send the SOC 2 report.\n* **Ana**: Revise the contract value proposal to reflect the 3-year term."
+  },
+  "c396226d98a377d63492f433d18f6a7656b2f07186f3cf17695a8103cc8ede3e:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:22:42.074Z",
+    "latencyMs": 9632,
+    "outputTokens": 69,
+    "outputTps": 14.8,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "```json\n{\n  \"vendor\": \"Halverson Supply\",\n  \"invoice_number\": \"INV-20417\",\n  \"due_date\": \"2026-11-14\",\n  \"total\": \"$4,812.50\"\n}\n```"
+  },
+  "f94634a85ef01f7d5cabe24b09ef1b5cc5ebeecd3affaafa6446a3ef89263b41:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:22:35.608Z",
+    "latencyMs": 6188,
+    "outputTokens": 64,
+    "outputTps": 15.5,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "| Ticket | Category | Urgency |\n| :--- | :--- | :--- |\n| Ticket 1 | Authentication | High |\n| Ticket 2 | Billing | Medium |\n| Ticket 3 | Feature Request | Low |\n| Ticket 4 | Bug / Technical Issue | High |"
+  },
+  "4c9ec3afc543078d4096a4e043c6572dfaabe894caffe3de6ec1e41c28191208:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:21:55.193Z",
+    "latencyMs": 21987,
+    "outputTokens": 207,
+    "outputTps": 14.1,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "**Executive Status Update: Week 41**\n\n**Progress**\n* **Fulfilment:** Same-day shipping rate improved to 94%.\n* **Returns:** Processing backlog reduced from 1,900 to 640 units.\n* **Staffing:** Filled two of the four open picker roles.\n\n**Blockers**\n* **Warehouse:** Aisle 7 is closed due to damaged racking; picking for those SKUs has moved to an overflow area, increasing order time by approximately 6 minutes.\n* **Systems:** The new label-printing service failed twice and was rolled back; the team will use the old service until next Wednesday.\n* **Overtime:** Current overtime is at 9%, exceeding the 6% target.\n\n**Decisions Needed**\n* Approval of $14K for racking repairs.\n* Decision on extending the second packing shift through November.\n* Confirmation of the go/no-go date for the label service."
+  },
+  "5401336f9cbd1cc1512ba761dd71fccbe9f5751377709d879909fe50ebe5dd0e:gemma4:12b-it-qat": {
+    "model": "gemma4:12b-it-qat",
+    "modelName": "Gemma 4 12B",
+    "recordedAt": "2026-10-24T04:21:33.521Z",
+    "latencyMs": 21134,
+    "outputTokens": 228,
+    "outputTps": 13.8,
+    "machine": "MacBook Pro (M3 Pro, 18 GB) · Ollama 0.35.1",
+    "text": "**How can I share my calendar with people outside of my organization?**\nYou can share a calendar with external users by generating a view-only link. This allows others to see the schedule without having edit access.\n\n**What types of recurring tasks are available?**\nTasks can now be set to repeat on a daily, weekly, or monthly basis. You also have the option to set a custom schedule for your recurring items.\n\n**Can I access my tasks when I don't have an internet connection?**\nYes, the mobile app features an offline mode that keeps your last 30 days of tasks accessible. Any changes made while offline will automatically sync once you reconnect to the internet.\n\n**How do I export my project data?**\nProjects can be exported directly from the project menu. You can choose to save your data as either a CSV or a PDF file.\n\n**Why was I receiving duplicate notifications for edited tasks?**\nWe have fixed a bug that caused notifications to arrive twice when two people edited the same task simultaneously. You should now only receive a single notification for these actions."
+  }
+}
