@@ -61,6 +61,19 @@ const httpsUrl = (v: string | undefined) => {
 };
 
 const PROVIDER_SECRETS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"] as const;
+/**
+ * AI-provider credentials and endpoints, including the ones a host can inject
+ * on its own (Netlify AI Gateway sets ANTHROPIC_*, OPENAI_*, GEMINI_*,
+ * GOOGLE_GEMINI_*, OPENROUTER_*, TYPESAFE_* and NETLIFY_AI_GATEWAY_*).
+ */
+const AI_PROVIDER_ENV = /^(?:(?:ANTHROPIC|OPENAI|AZURE_OPENAI|GEMINI|GOOGLE_GEMINI|GOOGLE_VERTEX|GOOGLE_GENERATIVE_AI|OPENROUTER|TYPESAFE|NETLIFY_AI_GATEWAY|AI_GATEWAY)_\w+|GOOGLE_API_KEY)$/;
+
+/** Names (never values) of AI-provider variables present in the environment. */
+export function aiProviderEnvNames(env: NodeJS.ProcessEnv): string[] {
+  return Object.keys(env)
+    .filter((k) => AI_PROVIDER_ENV.test(k) && Boolean(str(env[k])))
+    .sort();
+}
 /** Settings with no effect in portfolio mode (reported at startup so a misconfigured site is visible in the logs). */
 const PORTFOLIO_FIXED = ["SESSION_BUDGET_USD", "LIFETIME_BUDGET_USD", "OLLAMA_BASE_URL"] as const;
 
@@ -78,7 +91,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (portfolio) {
     if (requestedLive) ignored.push("AI_LIVE_MODE");
     if (requestedProvider === "live") ignored.push("DEFAULT_PROVIDER");
-    for (const k of PROVIDER_SECRETS) if (str(env[k])) ignored.push(k);
+    ignored.push(...aiProviderEnvNames(env));
     for (const k of PORTFOLIO_FIXED) if (str(env[k])) ignored.push(k);
   }
   // The public demo has no real spend; its budgets are fixed so the scenarios (Budget Guard included) always behave as documented.

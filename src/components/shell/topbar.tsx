@@ -36,7 +36,7 @@ function PortfolioCluster() {
           <span className="font-medium text-fg">Simulated</span>
         </span>
       </Tip>
-      <Tip content="Cloud execution is simulated: no API key exists on this deployment, and paid execution is rejected server-side.">
+      <Tip content="Cloud execution is simulated. No provider credentials are used in Portfolio Mode, and paid execution is rejected server-side.">
         <span className="inline-flex h-7 items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-xs">
           <Cloud className="size-3.5 text-cloud-fg" />
           <span className="hidden text-fg-2 sm:inline">Cloud</span>

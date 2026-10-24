@@ -3,10 +3,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Legend, ShareBar, StackedColumns } from "@/components/charts/charts";
 import { ClassificationBadge, LocationChip, ModeBadge } from "@/components/ui/badges";
+import { LocalTime } from "@/components/ui/local-time";
 import { Empty, Panel, PanelHeader } from "@/components/ui/primitives";
 import type { DailyPoint, ModelDistributionRow, OverviewMetrics } from "@/services/observability/repository";
 import type { ExecutionSummary } from "@/services/observability/types";
-import { cn, formatMs, formatUsd, relativeTime, shortDateTime } from "@/lib/format";
+import { cn, formatMs, formatUsd, relativeTime } from "@/lib/format";
 
 const LOCATION_SERIES = [
   { key: "local", label: "Local", color: "var(--local)" },
@@ -226,7 +227,7 @@ export function RequestsTable({ rows, compact }: { rows: ExecutionSummary[]; com
             <tr key={r.id} className="group border-b border-line last:border-0 hover:bg-surface-2">
               <td className="tnum whitespace-nowrap px-4 py-2 text-xs text-fg-3">
                 <Link href={`/requests/${r.id}`} className="block">
-                  {shortDateTime(r.createdAt)}
+                  <LocalTime iso={r.createdAt} />
                 </Link>
               </td>
               <td className={cn("max-w-[320px] px-2 py-2", compact && "max-w-[260px]")}>

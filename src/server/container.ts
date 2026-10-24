@@ -1,6 +1,6 @@
 import "server-only";
 import path from "node:path";
-import { loadConfig, type AppConfig } from "@/config/env";
+import { aiProviderEnvNames, loadConfig, type AppConfig } from "@/config/env";
 import { ANTHROPIC_MODELS } from "@/core/models/cloud-catalog";
 import { AnthropicProvider } from "@/providers/anthropic/anthropic-provider";
 import { GeminiProvider } from "@/providers/google/gemini-provider";
@@ -51,7 +51,12 @@ function build(): Container {
   const caps = config.deployment;
   if (caps.mode === "portfolio") {
     console.info(`[control-plane] portfolio mode (${caps.reason}): simulated inference only; no Ollama, no paid APIs, in-memory data.`);
-    if (config.ignored.length) console.warn(`[control-plane] ignored in portfolio mode: ${config.ignored.join(", ")}`);
+    // Names only, never values. A host can inject provider credentials on its own (e.g. Netlify AI Gateway).
+    const providerEnv = aiProviderEnvNames(process.env);
+    if (providerEnv.length) console.warn(`[control-plane] AI-provider variables present, never read in portfolio mode: ${providerEnv.join(", ")}`);
+    else console.info("[control-plane] AI-provider variables in environment: none");
+    const otherIgnored = config.ignored.filter((k) => !providerEnv.includes(k));
+    if (otherIgnored.length) console.warn(`[control-plane] ignored in portfolio mode: ${otherIgnored.join(", ")}`);
   }
 
   const db = caps.persistentStorage ? openDatabase({ kind: "file", path: path.join(config.dataDir, "control-plane.db") }) : openDatabase({ kind: "memory", driver: "node:sqlite" });

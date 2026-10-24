@@ -11,15 +11,17 @@ Run through this before the public site goes live. Nothing here spends money: th
 
 ## Netlify project
 
-- [ ] Imported from the Git repository; build settings come from `netlify.toml` (no overrides in the UI).
+- [ ] Build settings come from `netlify.toml` (no overrides in the UI). If the project is connected to Git, auto-publishing is locked until the draft is approved.
 - [ ] Environment variables contain **no API keys**. Optional: `PUBLIC_GITHUB_URL`, `PUBLIC_LINKEDIN_URL` (https only).
-- [ ] First deploy is a **Deploy Preview** or branch deploy, not production.
+- [ ] Netlify AI features are **off** for the team or project (otherwise the AI Gateway injects provider credentials into functions).
+- [ ] First deploy is a **draft** (built from a clean clone) or Deploy Preview, not production.
 
 ## On the preview URL
 
 - [ ] `npm run verify:portfolio -- https://<preview-url>` prints "All checks passed".
 - [ ] `curl -si -X POST https://<preview-url>/api/execute -H 'content-type: application/json' -H 'origin: https://<preview-url>' -d '{"instruction":"Summarize this.","allowLive":true}'` returns **403** with "Execution unavailable in Portfolio Mode".
-- [ ] Function logs show `[control-plane] portfolio mode` and no unexpected "ignored" settings.
+- [ ] Function logs show `[control-plane] portfolio mode` and `AI-provider variables in environment: none`, and no unexpected "ignored" settings.
+- [ ] The draft URL sends `X-Robots-Tag: noindex` (the verify script checks this); after publishing, the production URL does not.
 - [ ] Every page shows the PORTFOLIO DEMO banner; all six scenarios on the overview run and finish in 1–3 s.
 - [ ] `/about` explains what's real and what's simulated; footer links (if set) point to the right profiles.
 - [ ] Quick phone check: overview, a scenario run, the Comparison Lab.
@@ -27,5 +29,5 @@ Run through this before the public site goes live. Nothing here spends money: th
 
 ## Publish
 
-- [ ] Rename the site (e.g. `ai-ops-control-plane`) and promote the verified deploy to production.
+- [ ] Promote the verified deploy to production (publish it in the Netlify UI, or `netlify deploy --build --prod` from a clean clone).
 - [ ] Re-run `npm run verify:portfolio -- https://<production-url>`.

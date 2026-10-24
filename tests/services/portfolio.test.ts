@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDeploymentCapabilities, resolveDeploymentMode } from "@/config/deployment";
-import { loadConfig } from "@/config/env";
+import { aiProviderEnvNames, loadConfig } from "@/config/env";
 import { MockProvider } from "@/providers/mock/mock-provider";
 import { OllamaProvider } from "@/providers/ollama/ollama-provider";
 import type { AIProvider } from "@/providers/types";
@@ -131,6 +131,21 @@ describe("portfolio configuration never reads provider secrets", () => {
     expect(config.openai.model).toBeUndefined();
     expect(config.ignored).toEqual(expect.arrayContaining(["AI_LIVE_MODE", "DEFAULT_PROVIDER", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"]));
   });
+  it("detects host-injected AI-provider variables by name, without reading their values", () => {
+    const injected = loadConfig({
+      DEPLOYMENT_MODE: "portfolio",
+      ANTHROPIC_BASE_URL: "https://gateway.example/anthropic",
+      GOOGLE_GEMINI_BASE_URL: "https://gateway.example/gemini",
+      OPENROUTER_API_KEY: "or-test-0000",
+      NETLIFY_AI_GATEWAY_KEY: "nf-test-0000",
+      AWS_SESSION_TOKEN: "platform credential, not an AI provider",
+    } as unknown as NodeJS.ProcessEnv);
+    expect(injected.ignored).toEqual(expect.arrayContaining(["ANTHROPIC_BASE_URL", "GOOGLE_GEMINI_BASE_URL", "NETLIFY_AI_GATEWAY_KEY", "OPENROUTER_API_KEY"]));
+    expect(injected.ignored).not.toContain("AWS_SESSION_TOKEN");
+    expect(JSON.stringify(injected)).not.toMatch(/gateway\.example|or-test|nf-test/);
+    expect(aiProviderEnvNames({ DEPLOYMENT_MODE: "portfolio", NODE_ENV: "production" } as unknown as NodeJS.ProcessEnv)).toEqual([]);
+  });
+
   it("fixes the demo budgets so a hosting variable can't change how the scenarios behave", () => {
     expect(config.sessionBudgetUsd).toBe(2);
     expect(config.lifetimeBudgetUsd).toBe(10);

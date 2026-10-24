@@ -24,6 +24,20 @@ export function isAllowedHost(hostHeader: string | null, extra: string | undefin
   return allowed.includes(name);
 }
 
+/**
+ * Netlify serves every deploy that isn't the live production site on its own
+ * `<alias>--<project>.netlify.app` subdomain (draft deploys, Deploy Previews,
+ * branch deploys, deploy permalinks). Those get noindex; the production
+ * hostname and any custom domain stay indexable, even when a previewed deploy
+ * is later published unchanged.
+ */
+const NETLIFY_DEPLOY_HOST = /^[a-z0-9-]+--[a-z0-9-]+\.netlify\.app$/;
+
+export function isDeployPreviewHost(hostHeader: string | null): boolean {
+  const name = hostname(hostHeader);
+  return name !== null && NETLIFY_DEPLOY_HOST.test(name);
+}
+
 /** Mutations must carry an Origin whose host:port equals the request's Host. */
 export function isSameOrigin(originHeader: string | null, hostHeader: string | null): boolean {
   if (!originHeader || !hostHeader) return false;

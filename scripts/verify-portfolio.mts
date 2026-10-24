@@ -9,6 +9,7 @@
  * exits non-zero if any guarantee fails.
  */
 import { SCENARIOS } from "../src/scenarios/scenarios";
+import { isDeployPreviewHost } from "../src/server/host-guard";
 
 const BASE = (process.argv[2] ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 const JSON_HEADERS = { "content-type": "application/json", origin: BASE };
@@ -59,6 +60,13 @@ console.log(`Verifying portfolio deployment at ${BASE}\n`);
     const body = await (await fetch(BASE + path)).text();
     check(!SECRET_SHAPES.test(body), `${path} contains no key-shaped strings or Ollama address`);
   }
+}
+
+// Preview and draft hosts must not be indexed; the production host must stay indexable.
+{
+  const robots = (await fetch(`${BASE}/`)).headers.get("x-robots-tag") ?? "";
+  if (isDeployPreviewHost(new URL(BASE).host)) check(/noindex/i.test(robots), "preview/draft host sends X-Robots-Tag: noindex", robots || "header missing");
+  else check(!/noindex/i.test(robots), "this host is indexable (no noindex header)", robots || "no header");
 }
 
 // 2. The six scenarios produce their documented outcomes, all simulated, all at $0.

@@ -64,11 +64,11 @@ export default function AboutPage() {
           <div className="space-y-2 p-4 text-sm text-fg-2">
             <p>It deliberately cannot reach the developer&apos;s local Ollama runtime: there is no tunnel, proxy or exposed port to any private machine.</p>
             <p>
-              Paid API execution is disabled server-side, and no provider key is read on this deployment, so no visitor can generate paid usage. Requests that ask
-              for live execution are rejected with a 403, not quietly downgraded.
+              No provider credentials are used in Portfolio Mode. Paid API execution is disabled server-side, so no visitor can generate paid usage. Requests that
+              ask for live execution are rejected with a 403, not quietly downgraded.
             </p>
             <p className="flex items-center gap-1.5 text-xs text-fg-3">
-              <Cloud className="size-3.5" /> Anything you type is processed by deterministic code in memory and is not stored beyond this server instance.
+              <Cloud className="size-3.5" /> Anything you type is processed in memory by deterministic code and returned only to you; it is never added to the shared demo history.
             </p>
           </div>
         </Panel>

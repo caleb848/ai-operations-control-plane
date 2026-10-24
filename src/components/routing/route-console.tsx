@@ -400,7 +400,7 @@ function ExecuteButton(p: {
         <p className="mt-1.5 text-center text-2xs text-fg-4">
           {local
             ? `Portfolio demo: on a local install ${p.selectedName} runs through Ollama, at $0.00 API cost`
-            : `Portfolio demo: ${p.selectedName} is not called; no API key exists here`}
+            : `Portfolio demo: ${p.selectedName} is not called. No provider credentials are used in Portfolio Mode.`}
         </p>
       </div>
     );

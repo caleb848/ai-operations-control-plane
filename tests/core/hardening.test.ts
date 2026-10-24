@@ -6,7 +6,8 @@ import { DEFAULT_POLICY, validatePolicy } from "@/core/governance/policy";
 import { route } from "@/core/routing/engine";
 import { redactPII, redactSecrets } from "@/core/security/redact";
 import { isLoopbackUrl, isRemoteOllamaModel, localDescriptorsFromTags } from "@/providers/ollama/discovery";
-import { isAllowedHost, isSameOrigin } from "@/server/host-guard";
+import { utcClockTime, utcDateTime } from "@/lib/format";
+import { isAllowedHost, isDeployPreviewHost, isSameOrigin } from "@/server/host-guard";
 import { getScenario } from "@/scenarios/scenarios";
 import { availability, FRESH_BUDGET, HAIKU, OLLAMA_TAGS, OPUS, request, SONNET } from "../support/fixtures";
 
@@ -103,5 +104,35 @@ describe("host guard (DNS rebinding)", () => {
     expect(isSameOrigin("http://127.0.0.1:3000", "127.0.0.1:3000")).toBe(true);
     expect(isSameOrigin(null, "127.0.0.1:3000")).toBe(false);
     expect(isSameOrigin("http://evil.example", "127.0.0.1:3000")).toBe(false);
+  });
+});
+
+describe("search indexing", () => {
+  it("marks Netlify preview, draft, branch and permalink hosts noindex, never the production host", () => {
+    for (const host of [
+      "preview--ai-ops-control-plane.netlify.app",
+      "deploy-preview-12--ai-ops-control-plane.netlify.app",
+      "6adc4ad05fad9bebbef2e777--ai-ops-control-plane.netlify.app",
+      "Preview--AI-Ops-Control-Plane.netlify.app:443",
+    ]) {
+      expect(isDeployPreviewHost(host)).toBe(true);
+    }
+    for (const host of [
+      "ai-ops-control-plane.netlify.app",
+      "demo.example.com",
+      "preview--ai-ops-control-plane.netlify.app.attacker.example",
+      "127.0.0.1:3001",
+      null,
+    ]) {
+      expect(isDeployPreviewHost(host)).toBe(false);
+    }
+  });
+});
+
+describe("timestamps rendered on a server in any time zone", () => {
+  it("prints the same UTC text everywhere, so hydration can't mismatch before the browser switches to local time", () => {
+    expect(utcDateTime("2026-10-24T06:12:51.000Z")).toBe("Oct 24 06:12 UTC");
+    expect(utcDateTime("2026-01-03T23:05:00.000Z")).toBe("Jan 3 23:05 UTC");
+    expect(utcClockTime("2026-10-24T06:02:09.000Z")).toBe("06:02:09");
   });
 });

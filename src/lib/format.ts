@@ -45,6 +45,24 @@ export function shortDateTime(iso: string): string {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${time}`;
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * UTC renderings built by hand, not with toLocale*, so the server and the
+ * browser produce byte-identical text (ICU spacing differs between engines).
+ * Used for the server render; the browser then switches to local time.
+ */
+export function utcDateTime(iso: string): string {
+  const d = new Date(iso);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())} UTC`;
+}
+
+export function utcClockTime(iso: string): string {
+  const d = new Date(iso);
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+}
+
 export function relativeTime(iso: string, now = Date.now()): string {
   const s = Math.round((now - new Date(iso).getTime()) / 1000);
   if (s < 45) return "just now";

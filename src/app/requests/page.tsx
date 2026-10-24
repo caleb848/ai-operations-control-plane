@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { RequestsTable } from "@/components/overview/sections";
 import { PageHeader } from "@/components/ui/page-header";
 import { Empty, Panel, Skeleton } from "@/components/ui/primitives";
+import { loadConfig } from "@/config/env";
 import { requestsData } from "@/server/queries";
 
 export const metadata: Metadata = { title: "Requests" };
@@ -35,7 +36,9 @@ function Select({ name, value, options }: { name: string; value?: string; option
 }
 
 async function RequestsList({ searchParams }: { searchParams: Promise<SP> }) {
-  const sp = await searchParams;
+  const portfolio = loadConfig().deployment.mode === "portfolio";
+  // Every public-demo request is simulated, so execution-mode and real/seeded filters don't apply there.
+  const sp = portfolio ? { ...(await searchParams), mode: undefined, data: undefined } : await searchParams;
   const page = Number(sp.page ?? 1) || 1;
   const { rows, total, limit } = await requestsData({ ...sp, page });
   const pages = Math.max(1, Math.ceil(total / limit));
@@ -57,8 +60,12 @@ async function RequestsList({ searchParams }: { searchParams: Promise<SP> }) {
         </div>
         <Select name="location" value={sp.location} options={[["", "All locations"], ["local", "Local"], ["cloud", "Cloud"], ["blocked", "Blocked"]]} />
         <Select name="classification" value={sp.classification} options={[["", "All data"], ["public", "Public"], ["internal", "Internal"], ["confidential", "Confidential"], ["restricted", "Restricted"]]} />
-        <Select name="mode" value={sp.mode} options={[["", "All modes"], ["local", "LOCAL"], ["live", "LIVE API"], ["demo", "DEMO"]]} />
-        <Select name="data" value={sp.data} options={[["", "Real + seeded"], ["real", "Real executions only"]]} />
+        {portfolio ? null : (
+          <>
+            <Select name="mode" value={sp.mode} options={[["", "All modes"], ["local", "LOCAL"], ["live", "LIVE API"], ["demo", "DEMO"]]} />
+            <Select name="data" value={sp.data} options={[["", "Real + seeded"], ["real", "Real executions only"]]} />
+          </>
+        )}
         <button className="h-8 rounded-md border border-line bg-surface-3 px-3 text-xs font-medium text-fg hover:border-line-strong">Apply</button>
       </form>
       {rows.length ? <RequestsTable rows={rows} /> : <Empty title="No matching requests" />}

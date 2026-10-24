@@ -1,6 +1,7 @@
 import { Ban, CheckCircle2, CircleAlert, Circle, FlaskConical, XCircle } from "lucide-react";
 import type { TraceEvent } from "@/core/types";
-import { clockTime, cn } from "@/lib/format";
+import { LocalTime } from "@/components/ui/local-time";
+import { cn } from "@/lib/format";
 
 const LEVEL = {
   info: { icon: Circle, color: "text-fg-4" },
@@ -33,7 +34,9 @@ export function TraceTimeline({ events, live }: { events: TraceEvent[]; live?: b
         const Icon = L.icon;
         return (
           <li key={i} className="group relative grid grid-cols-[64px_52px_16px_1fr] items-start gap-x-2 py-[5px] animate-rise" style={{ animationDelay: live ? `${Math.min(i, 24) * 18}ms` : undefined }}>
-            <span className="tnum text-fg-3">{clockTime(e.at)}</span>
+            <span className="tnum text-fg-3">
+              <LocalTime iso={e.at} format="clock" />
+            </span>
             <span className="tnum text-right text-fg-4">+{(e.offsetMs / 1000).toFixed(e.offsetMs < 10_000 ? 2 : 1)}s</span>
             <span className={cn("relative z-10 mt-[1px] flex size-4 items-center justify-center bg-surface", L.color)}>
               <Icon className="size-3.5" strokeWidth={2} />

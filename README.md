@@ -158,7 +158,7 @@ Built for a total paid-testing budget of about $10–20:
 
 ## Public Portfolio Demo
 
-The same codebase builds in two modes. The public build is a **portfolio demo**: the classifier, sensitivity scanner, governance policy, routing scores, Budget Guard, fallback chains, review rules and request trace all run for real on every request, but **no model is ever called**. There are no API keys, no route to Ollama or to the developer's machine, and nothing a visitor does can create spend.
+The same codebase builds in two modes. The public build is a **portfolio demo**: the classifier, sensitivity scanner, governance policy, routing scores, Budget Guard, fallback chains, review rules and request trace all run for real on every request, but **no model is ever called**. No provider credentials are used, there is no route to Ollama or to the developer's machine, and nothing a visitor does can create spend.
 
 | | Local install (private) | Public portfolio demo |
 |---|---|---|
@@ -217,9 +217,12 @@ flowchart LR
 Netlify builds Next.js 16 with its OpenNext-based adapter (Next.js Runtime v5, installed automatically). `netlify build` was run locally against this repository: it produced the server function plus an Edge Function for `proxy.ts`, and the bundle passed `npm run verify:portfolio` under `netlify serve`.
 
 1. Push the repository to GitHub (`.env*` and `data/` are gitignored).
-2. In Netlify: **Add new project → Import an existing project**, pick the repo. `netlify.toml` already sets the build command, publish directory, `NODE_VERSION = "24"` and the portfolio variables.
-3. Do **not** add any API key. Optionally add `PUBLIC_GITHUB_URL` / `PUBLIC_LINKEDIN_URL` for footer links.
-4. Deploy a preview first, then run `npm run verify:portfolio -- https://<preview-url>`; it exits non-zero if any guarantee fails.
+2. **Turn off Netlify AI features** (Team settings → AI enablement, or per project: Project configuration → Build & deploy → Build with AI → Manage AI features). On credit-based plans Netlify's AI Gateway otherwise injects `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` and their base URLs into every function, billed to your Netlify credits. Portfolio mode never reads them, but they shouldn't exist on a public demo.
+3. Create the project with no environment variables. `netlify.toml` already sets the build command, publish directory, `NODE_VERSION = "24"` and the portfolio variables. Optionally add `PUBLIC_GITHUB_URL` / `PUBLIC_LINKEDIN_URL` for footer links; never add a provider key.
+4. Deploy a draft first. A project connected to the repo publishes its production branch automatically, so either deploy drafts from a clean clone (`gh repo clone … && npm ci && netlify deploy --build --site <id> --alias preview`, never from a working folder that holds `.env.local` or `data/`) or lock auto-publishing before connecting the repo.
+5. Run `npm run verify:portfolio -- https://<draft-url>`; it exits non-zero if any guarantee fails. The function log should show `[control-plane] portfolio mode` and `AI-provider variables in environment: none` (the server logs the names it finds, never values).
+
+**Search indexing.** Preview, draft, branch and permalink hosts (`<alias>--<project>.netlify.app`) get `X-Robots-Tag: noindex`, decided per request in `proxy.ts`. The production hostname and custom domains stay indexable, even when a verified draft is later published unchanged.
 
 Under `netlify serve`, refused requests show as 404 rather than 403: the CLI's local proxy retries static paths on any 403. The verify script accepts any refusal status; on the deployed preview, check that `/api/execute` with `allowLive` returns the 403 JSON message.
 
@@ -231,7 +234,7 @@ Under `netlify serve`, refused requests show as 404 rather than 403: the CLI's l
 | `AI_LIVE_MODE` / `DEFAULT_PROVIDER` | `false` / `mock` | Set in `netlify.toml`; ignored in portfolio mode anyway. |
 | `NODE_VERSION` | `24` | Set in `netlify.toml`. Functions run on the build's Node version; `node:sqlite` needs 22.13+. |
 | `PUBLIC_GITHUB_URL`, `PUBLIC_LINKEDIN_URL` | `https://…` | Optional footer links; non-https values are dropped. |
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` | **never set** | Would be ignored and logged, but keys don't belong on a public site. |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` | **never set** | Would be ignored and logged by name, but keys don't belong on a public site. Netlify AI Gateway sets them unless AI features are off. |
 
 **Preview the public build locally** (separate output folder, so the local build in `.next` is untouched):
 
@@ -240,7 +243,7 @@ npm run build:portfolio && npm run start:portfolio    # http://127.0.0.1:3001
 npm run verify:portfolio -- http://127.0.0.1:3001
 ```
 
-**Portfolio limitations.** History lives in memory per server instance, so it resets on cold starts and differs between instances; a visitor's own requests stay viewable from their browser session. Recorded local outputs exist only for the built-in scenario and seed prompts; any other prompt gets a labeled notice instead of text. Rate limits are per instance.
+**Portfolio limitations.** History lives in memory per server instance, so it resets on cold starts and differs between instances; a visitor's own requests stay viewable from their browser session. Recorded local outputs exist only for the built-in scenario and seed prompts; any other prompt gets a labeled notice instead of text. Rate limits are per instance. Timestamps are shown in the visitor's time zone (the server renders UTC first, then the browser switches), but the overview chart groups requests by the server's day, which is UTC on Netlify.
 
 ## Running it
 

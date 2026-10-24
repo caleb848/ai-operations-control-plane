@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ResetSession } from "@/components/budget/reset-session";
 import { Meter } from "@/components/charts/charts";
+import { LocalTime } from "@/components/ui/local-time";
 import { PageHeader } from "@/components/ui/page-header";
 import { Empty, KeyValue, Panel, PanelHeader, Skeleton } from "@/components/ui/primitives";
 import { budgetData } from "@/server/queries";
-import { cn, formatUsd, shortDateTime } from "@/lib/format";
+import { cn, formatUsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Budget" };
 
@@ -59,7 +60,9 @@ async function Budget() {
               <KeyValue label="Simulated (demo, counted toward guard)">{formatUsd(b.sessionSimulatedUsd)}</KeyValue>
             )}
             <KeyValue label="Remaining">{formatUsd(b.remainingUsd)}</KeyValue>
-            <KeyValue label="Started">{shortDateTime(b.sessionStartedAt)}</KeyValue>
+            <KeyValue label="Started">
+              <LocalTime iso={b.sessionStartedAt} />
+            </KeyValue>
           </div>
         </Panel>
         <Panel className="p-4">
@@ -82,7 +85,7 @@ async function Budget() {
             <div className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-warn-fg">PORTFOLIO DEMO</div>
             <ul className="mt-2 space-y-1.5 text-xs text-fg-2">
               <li>Paid execution is rejected server-side, whatever a request asks for.</li>
-              <li>No provider keys are read on this deployment, and no cloud provider client exists in the server process.</li>
+              <li>No provider credentials are used in Portfolio Mode: none are read, and no cloud provider client exists in the server process.</li>
               <li>Ollama is never contacted; local models are simulated.</li>
               <li>Budget Guard runs for real: scenario 05 sets the session spend explicitly. Visitors share this server, so their simulated spend is shown but never counts toward the guard.</li>
             </ul>
@@ -155,7 +158,9 @@ async function Budget() {
                 <tbody>
                   {ledger.map((e) => (
                     <tr key={e.id} className="border-b border-line last:border-0">
-                      <td className="tnum px-4 py-2 text-xs text-fg-3">{shortDateTime(e.at)}</td>
+                      <td className="tnum px-4 py-2 text-xs text-fg-3">
+                        <LocalTime iso={e.at} />
+                      </td>
                       <td className="px-2 py-2 text-fg-2">{e.modelId?.split(":")[1] ?? "—"}</td>
                       <td className="px-2 py-2 text-xs">
                         {e.kind === "actual" ? (

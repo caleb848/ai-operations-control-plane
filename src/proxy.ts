@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDeploymentCapabilities } from "./config/deployment";
-import { isAllowedHost, isSameOrigin } from "./server/host-guard";
+import { isAllowedHost, isDeployPreviewHost, isSameOrigin } from "./server/host-guard";
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**
  * Local installs: only loopback Host headers (DNS-rebinding protection).
  * Every deployment: API mutations must carry an Origin matching the host.
+ * Netlify preview/draft hostnames: X-Robots-Tag noindex.
  * The mode comes from BUILD_DEPLOYMENT_MODE, inlined at build time, so this
  * works even where runtime environment variables aren't visible to the proxy.
  */
@@ -21,7 +22,10 @@ export function proxy(request: NextRequest) {
     const ok = isSameOrigin(origin, host) || (!caps.loopbackOnly && isSameOrigin(origin, request.headers.get("x-forwarded-host")));
     if (!ok) return NextResponse.json({ error: "Cross-origin or origin-less mutations are not allowed" }, { status: 403 });
   }
-  return NextResponse.next();
+  const response = NextResponse.next();
+  // Decided per request at the edge, so a cached page can't carry a preview's noindex onto the production host.
+  if (isDeployPreviewHost(host)) response.headers.set("X-Robots-Tag", "noindex");
+  return response;
 }
 
 export const config = {

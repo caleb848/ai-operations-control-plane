@@ -7,12 +7,12 @@ import { DecisionPanel, ProfileChips } from "@/components/routing/decision-panel
 import { EvaluationChecks, ExecutionSummaryStrip, OutputBanner, ReviewSummary } from "@/components/routing/execution-result";
 import { TraceTimeline } from "@/components/routing/trace-timeline";
 import { ModeBadge } from "@/components/ui/badges";
+import { LocalTime } from "@/components/ui/local-time";
 import { Markdown } from "@/components/ui/markdown";
 import { KeyValue, Panel, PanelHeader, SectionLabel, Skeleton } from "@/components/ui/primitives";
 import { SessionRecordView } from "@/components/routing/session-record-view";
 import { loadConfig } from "@/config/env";
 import { requestDetail } from "@/server/queries";
-import { shortDateTime } from "@/lib/format";
 
 export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   return (
@@ -45,7 +45,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-fg-3">
             <span className="font-mono">{r.id}</span>
             <span>·</span>
-            <span>{shortDateTime(r.createdAt)}</span>
+            <LocalTime iso={r.createdAt} />
             <span>·</span>
             <span>source: {r.source}</span>
           </div>
@@ -87,7 +87,16 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         <div className="space-y-4">
           {approval ? (
             <Panel>
-              <PanelHeader title="Human review" description={approval.status === "pending" ? "Held for approval" : `Decided ${approval.decidedAt ? shortDateTime(approval.decidedAt) : ""}`} />
+              <PanelHeader
+                title="Human review"
+                description={
+                  approval.status === "pending" ? (
+                    "Held for approval"
+                  ) : (
+                    <>Decided {approval.decidedAt ? <LocalTime iso={approval.decidedAt} /> : null}</>
+                  )
+                }
+              />
               <div className="space-y-3 p-4">
                 <ReviewSummary r={r} />
                 {approval.status === "pending" ? (

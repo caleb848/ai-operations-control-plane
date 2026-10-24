@@ -12,7 +12,7 @@ export function PortfolioBanner() {
         <span className="inline-flex items-center gap-1.5 font-semibold tracking-[0.04em] text-warn-fg">
           <FlaskConical className="size-3.5" /> PORTFOLIO DEMO
         </span>
-        <span>Routing, governance and cost logic are real · model execution is simulated · no API keys, no access to the developer&apos;s machine</span>
+        <span>Routing, governance and cost logic are real · model execution is simulated · no provider credentials are used · no access to the developer&apos;s machine</span>
         <Link href="/about" className="ml-auto font-medium text-fg underline decoration-line-strong underline-offset-2 hover:decoration-fg">
           How this demo works
         </Link>
