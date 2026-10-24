@@ -1,27 +1,36 @@
 # AI Operations Control Plane
 
-**Decides, per request, whether AI work runs on a model on this laptop or on Claude in the cloud, enforces data policy, caps spend, and fails closed.**
+**Routes every AI request to a local model or to Claude, and enforces data policy, spend limits and human review around the answer.**
+
+**Live demo: [ai-ops-control-plane.netlify.app](https://ai-ops-control-plane.netlify.app)**. The public site runs in Portfolio Mode: routing, governance and cost logic run for real on every request, while model execution is simulated, with no API keys and no access to any machine ([how it differs from a local install](#public-portfolio-demo)).
+
+![Routing decision on a local install: a confidential client brief stays on-device while every cloud model is blocked by policy](docs/screenshots/02-routing-decision.png)
 
 Not every AI task should go to the most powerful cloud model. Confidential work can stay on a local model at zero API cost; complex reasoning can justify a stronger cloud model; simple work shouldn't pay for intelligence it doesn't need. This project is the layer that makes that call for every request, explains it, and records it.
 
-**Engineering decisions worth a look**
+### Engineering decisions worth a look
 
-- **Fail closed.** If policy requires local execution and the local model is down, the request is blocked. Restricted data never falls back to the cloud, and fallback chains only contain models that already passed governance.
-- **Worst-case budget reservation.** Before a paid call, input + `max_tokens` at list price is reserved in the ledger synchronously, so concurrent requests can't overspend; actual usage is reconciled afterwards.
-- **No silent model swaps.** SDK retries are off and Anthropic's server-side fallback is deliberately unused: a substitution the control plane didn't choose would bypass governance and cost accounting.
-- **Free isn't automatically best.** Quality above a task's requirement counts at a reduced rate, so a $0.0002, 2-second cloud call can beat a 20-second local run for public data, while confidential data stays local regardless.
-- **Honest modes.** Every answer is labeled LOCAL (real on-device inference), LIVE API (real paid call) or DEMO (simulated, never recommended, never counted as spend).
+- **Fail closed.** If policy requires local execution and the local model is down, the request is blocked, not sent to the cloud. Fallback chains only contain models that already passed governance, and nothing is retried silently.
+- **Budget Guard reserves the worst case before every paid call.** Estimated input plus `max_tokens` at list price is reserved in the ledger synchronously, so concurrent requests can't race past the budget; provider-reported usage settles it afterwards. When cloud doesn't fit, a capable local model takes the request.
+- **Free isn't automatically best.** Routing weighs privacy, cost, task fit, reasoning and latency, and quality above a task's requirement counts at a reduced rate. A $0.0002, 2-second Haiku call can beat a 15-second local run on public data, while confidential data stays local regardless.
+- **Honest labels.** Every answer is marked LOCAL (real on-device inference), LIVE API (real paid call) or DEMO (simulated). Simulated output is never evaluated, recommended or counted as spend.
+- **A public demo that can't spend or reach the laptop.** One capability check decides what a deployment may do and fails closed on any hosting signal. The public server reads no provider credentials and rejects live-execution requests with 403.
 
-**Proof:** 170 automated tests (core, providers over mocked HTTP, services on in-memory SQLite, portfolio-mode guarantees); tests cannot reach paid APIs. Local inference was exercised for real on an M3 Pro: 24 runs through the app on Gemma 4 12B and Qwen 3.5 9B, averaging 18 s at ~17 tok/s, $0.00 API cost. Paid API spend during development: $0.00 (no API key was configured; cloud ran in DEMO mode).
+### Verified
 
-![Routing decision: a confidential client brief stays on-device while all cloud models are blocked by policy](docs/screenshots/02-routing-decision.png)
+- **173 automated tests** (Vitest): routing and governance logic, providers over mocked HTTP, services on in-memory SQLite, and portfolio-mode guarantees under hostile settings. Tests cannot reach paid APIs.
+- **Real local inference:** 25 runs through the app on Gemma 4 12B and Qwen 3.5 9B (Ollama on an M3 Pro, 18 GB), averaging 18 s at about 17 tokens/s, $0.00 API cost.
+- **One live Anthropic call:** Claude Haiku 5.5 on a public summarization task, 518 input / 227 output tokens as reported by the provider, $0.000165, 2.5 s, one attempt, no fallback. That is the project's entire paid API spend.
+- **Public deployment checked from the outside:** `npm run verify:portfolio` (35 checks) and browser QA at four screen sizes against the live site.
+
+**Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · SQLite · zod · Vitest · Playwright · Anthropic SDK · Ollama · Netlify
 
 | | |
 |---|---|
 | **Local AI** | Real inference through [Ollama](https://ollama.com) on the developer's laptop (Gemma 4 12B and Qwen 3.5 9B on an M3 Pro). Any installed Ollama model is discovered and registered automatically. |
 | **Cloud AI** | Anthropic Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 through the official SDK. OpenAI and Gemini adapters are included and activate when configured. |
 | **Default mode** | DEMO: local models run for real, cloud models are simulated by `MockProvider` and labeled as such. Paid calls are opt-in. |
-| **Public demo** | A separate [portfolio mode](#public-portfolio-demo): same routing and governance, simulated execution, no keys, no access to any machine. |
+| **Public demo** | [ai-ops-control-plane.netlify.app](https://ai-ops-control-plane.netlify.app) in [Portfolio Mode](#public-portfolio-demo): same routing and governance, simulated execution, no keys, no access to any machine. |
 
 ## What it does
 
@@ -61,11 +70,13 @@ flowchart TD
 | ![Overview](docs/screenshots/01-overview.png) | ![Routing](docs/screenshots/02-routing-decision.png) | ![Comparison](docs/screenshots/03-comparison-lab.png) |
 | Local vs cloud volume, external API spend vs spend avoided, evaluation, human reviews, policy blocks, live Local AI status and routing distribution. | Request → classifier → policy gate, then the local lane and cloud lane, every model's factor scores, why the winner won and why the others didn't. | One task across local and cloud models: output, evaluation, latency, external API cost, tokens, privacy and data location side by side, with a recommendation. |
 
+Screenshots are from a local install: real Ollama runs, cloud in DEMO mode.
+
 More: [fail-closed block](docs/screenshots/04-fail-closed.png) · [budget guard](docs/screenshots/05-budget-guard.png) · [Sonnet over Opus](docs/screenshots/06-sonnet-over-opus.png) · [request trace](docs/screenshots/07-request-trace.png) · [governance policy](docs/screenshots/08-governance.png)
 
 ## Demo scenarios
 
-All six run from **Route a task**. Organizations, people, emails (`.example`) and phone numbers (555-01xx) are fictional.
+All six run from **Route a task**. Organizations, people, emails (`.example`) and phone numbers (555-01xx) are fictional. The routing outcomes below are the same on the public demo, where local runs are replays of recorded real outputs (or a labeled notice) and cloud runs are simulated.
 
 | # | Scenario | What happens | Why |
 |---|---|---|---|
@@ -111,6 +122,23 @@ Scores within 0.5 are ties, broken by lower cost, then lower latency.
 
 > **Configurable Capability Profiles are routing configuration, not benchmarks.** They express how much an operator trusts a model for a kind of work. The defaults for the two installed local models come from the owner's own local evaluation (2026-10-04, thinking off): Gemma 4 12B passed all graded prompts and a 10K-token retrieval test; Qwen 3.5 9B missed an arithmetic step, a word limit and a long-context lookup but generates ~30% faster. Cloud defaults are tier-based judgment. All values are editable in the Model registry and meant to be tuned with Comparison Lab results.
 
+## Model economics
+
+| Model | Runs on | Price (input / output per million tokens) | Typical role |
+|---|---|---|---|
+| Gemma 4 12B, Qwen 3.5 9B | The developer's laptop, via Ollama | $0 in API fees; costs local compute and time (about 18 s per request in testing) | Confidential and restricted work, and anything that clears the quality bar when cost or privacy dominates |
+| Claude Haiku 5.5 | Anthropic API | $0.10 / $0.50 (prompts up to 100K tokens) | Fast, cheap public and internal tasks |
+| Claude Sonnet 5.5 | Anthropic API | $2 / $10 | Complex reasoning that crosses the higher quality thresholds |
+| Claude Opus 5.5 | Anthropic API | $4 / $20 | Best-quality mode, or when only Opus clears the bar |
+
+List prices are from the Claude API reference (cached 2026-10-06) and live in [`src/core/models/cloud-catalog.ts`](src/core/models/cloud-catalog.ts).
+
+- **Cost is a scored factor, not a filter.** It's scored on a square-root scale (100 at $0, 0 at $0.05 or more per request), so fractions of a cent still register.
+- **Surplus quality is discounted.** In Balanced mode, quality above the requirement counts at 35%. That's why Sonnet beats Opus in scenario 3: Opus's extra capability doesn't justify roughly twice the price.
+- **Spend avoided is measured.** The dashboard compares actual external spend with what the same requests would have cost on an all-Sonnet baseline.
+- **Simulated spend stays separate.** DEMO runs record their estimated cost as *simulated* in the ledger, never as external API spend.
+- **In practice:** the one live call, a three-bullet summary on Haiku 5.5, cost $0.000165 and took 2.5 s; the same task on the local models costs nothing in API fees but took 13–16 s in recorded runs.
+
 ## Governance
 
 | Classification | Default rule | Human review |
@@ -128,7 +156,16 @@ Policy is editable on the **Policies** page, which also shows a live "who may pr
 - **Restricted stays local** and is always reviewed.
 - **Credentials escalate.** Detected API keys, tokens and private keys make a request Restricted and are redacted from traces.
 
-Human review is also triggered by high business risk (customer-facing, legal, regulated or press audiences), an evaluation estimate below 70, or a missed quality threshold. Reviewers approve or reject in **Approvals**; the decision and note are appended to the request's trace.
+### Human review
+
+Outputs are held for a person to approve when:
+
+- the data is Confidential or Restricted;
+- the business risk is high (customer-facing, legal, regulated or press audiences);
+- the evaluation estimate is below 70;
+- no eligible model reached the quality requirement, or the request was served by a fallback model (configurable).
+
+Reviewers approve or reject in **Approvals**, and the decision and note are appended to the request's trace. On the public demo, approvals work but store no visitor-written notes.
 
 ## Execution modes: DEMO, LOCAL, LIVE API
 
@@ -141,6 +178,13 @@ The interface always shows which one produced an answer.
 | **LIVE API** | A real, paid cloud call. Usage and cost come from the provider's reported tokens at list price. |
 
 Zero API cost is not zero compute cost. The dashboard says *External API cost: $0.00* for local runs, not "free".
+
+## Observability
+
+- **Request trace.** Every request records each stage (request, classify, policy, health, route, budget, execute, fallback, evaluate, review) with timestamps, offsets and the reason behind each decision. Injected faults and simulated steps are marked **simulated**. [Example](docs/screenshots/07-request-trace.png).
+- **Spend ledger.** Every charge is tagged *actual*, *simulated*, *reserved* or *unreconciled*. Reservations settle against provider-reported usage, are released when the provider didn't bill, and stay counted at the worst case when the outcome is unknown.
+- **Dashboard.** Local vs cloud share, external spend vs spend avoided, evaluation estimates, pending reviews, policy blocks and Budget Guard reroutes, and how requests are distributed across models.
+- **Privacy in the records.** Inputs are stored as a SHA-256 fingerprint plus a redacted preview, and secrets are redacted from traces.
 
 ## Budget safeguards
 
@@ -247,7 +291,7 @@ npm run verify:portfolio -- http://127.0.0.1:3001
 
 ## Running it
 
-Requirements: Node.js 22+ (developed on 24), and optionally [Ollama](https://ollama.com) with at least one chat model.
+Requirements: Node.js 22.13+ (developed on 24), and optionally [Ollama](https://ollama.com) with at least one chat model.
 
 ```bash
 npm install
@@ -341,6 +385,10 @@ What it doesn't do, honestly:
 - **The evaluation estimate is a heuristic** (structure, length, grounding overlap, truncation, refusals, echoed contact details). It screens for obvious failures; it does not measure correctness.
 - **Capability profiles are configuration**, not benchmarks (see above).
 - **Latency for cloud models is estimated** until live runs provide measurements. Simulated cloud results in the Comparison Lab use the capability profile for quality, and the recommendation says so.
-- **Token estimates** before execution use ~4 characters per token; executions record provider-reported counts.
+- **Token estimates** before execution use ~4 characters per token and don't count the prompt framing. In the live verification the estimate was 339 input tokens against 518 reported, so a worst-case reservation can undershoot slightly. Counting tokens with the provider's token-counting endpoint before reserving is the planned fix; executions always record provider-reported counts.
 - **OpenAI and Gemini adapters** are covered by mocked-HTTP tests but have not been run against the live APIs. Their prices must be configured; none are guessed.
 - **Anthropic prices** are list prices from the Claude API reference as cached on 2026-10-06; check current pricing before relying on cost figures.
+
+## License
+
+[MIT](LICENSE)

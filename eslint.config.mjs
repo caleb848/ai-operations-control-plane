@@ -12,8 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Portfolio preview build and Netlify CLI output.
-    ".next-portfolio/**",
+    // Alternate build outputs (e.g. the portfolio preview) and Netlify CLI output.
+    ".next-*/**",
     ".netlify/**",
   ]),
 ]);

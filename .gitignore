@@ -13,9 +13,9 @@
 # testing
 /coverage
 
-# next.js
+# next.js (including alternate dist dirs such as .next-portfolio)
 /.next/
-/.next-portfolio/
+/.next-*/
 /.netlify/
 /out/
 
@@ -25,6 +25,9 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.log
 
 # debug
 npm-debug.log*
@@ -36,8 +39,17 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local database (execution history, outputs, ledger)
+# local database (execution history, outputs, ledger), wherever DATA_DIR points
 /data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Playwright output
+/test-results/
+/playwright-report/
 
 # vercel
 .vercel
