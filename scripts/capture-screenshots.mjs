@@ -12,13 +12,13 @@ import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const BASE = process.argv[2] ?? "http://127.0.0.1:3000";
-const THEME = process.argv[3] ?? "dark";
+const THEME = process.argv[3] ?? "light";
 const OUT = "docs/screenshots";
 const VIEWPORT = { width: 1600, height: 1000 };
 
 await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, colorScheme: THEME });
+const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, colorScheme: THEME, reducedMotion: "reduce" });
 await ctx.addInitScript((t) => {
   try {
     localStorage.setItem("theme", t);
@@ -33,43 +33,71 @@ async function open(path, waitFor) {
 }
 
 async function shot(name, opts = {}) {
+  // Full-page captures draw sticky chrome where the page is scrolled, so start from the top.
+  if (opts.fullPage) await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `${OUT}/${name}.png`, ...opts });
   console.log(`saved ${OUT}/${name}.png`);
 }
 
+async function run() {
+  const button = page.getByRole("button", { name: /^Run/ }).first();
+  await button.waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => b.textContent?.startsWith("Run") && !b.disabled), null, { timeout: 60_000 });
+  await button.click();
+}
+
+const flow = 'section[aria-labelledby="flow-title"]';
+
+// Brings the routing decision up under the top bar, so the shot shows the decision rather than the scenario picker.
+async function focusFlow() {
+  await page.locator(flow).evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 88));
+  await page.waitForTimeout(400);
+}
+
 // 01 Overview
-await open("/", "text=Requests by execution location");
+await open("/", "#traffic-title");
 await shot("01-overview");
 
 // 02 Routing decision (hero): confidential brief, cloud blocked, local selected
-await open("/route?scenario=confidential-client-brief", "text=Routing score");
+await open("/route?scenario=confidential-client-brief", "text=Why this route?");
+await focusFlow();
 await shot("02-routing-decision");
-const decisionPanel = page.locator("h2:has-text('Routing decision')").locator("xpath=ancestor::section[1]");
-await decisionPanel.screenshot({ path: `${OUT}/02-routing-decision-panel.png` });
+await page.locator(flow).screenshot({ path: `${OUT}/02-routing-decision-panel.png` });
 console.log(`saved ${OUT}/02-routing-decision-panel.png`);
 
 // 04–06 other routing outcomes
-await open("/route?scenario=restricted-local-offline", "text=fail-closed");
+await open("/route?scenario=restricted-local-offline", "text=Request blocked");
+await focusFlow();
 await shot("04-fail-closed");
 await open("/route?scenario=budget-exhausted", "text=Rerouted by Budget Guard");
+await focusFlow();
 await shot("05-budget-guard");
-await open("/route?scenario=strategic-positioning", "text=Routing score");
+await open("/route?scenario=strategic-positioning", "text=Why this route?");
+await focusFlow();
 await shot("06-sonnet-over-opus");
 
 // 07 Real local execution and its trace
-await open("/route?scenario=confidential-client-brief", "text=Routing score");
-await page.locator("button:has-text('Run locally')").first().click();
-await page.waitForSelector("h2:has-text('Execution')", { timeout: 600_000 });
+await open("/route?scenario=confidential-client-brief", "text=Why this route?");
+await run();
+const result = page.locator('section[aria-labelledby="result-title"]').first();
+await result.waitFor({ timeout: 600_000 });
+await result.getByRole("button", { name: /Decision trace/ }).click();
+// The result is taller than the viewport; a sticky top bar would be drawn across it.
+await page.addStyleTag({ content: "header { position: static !important; }" });
 await page.waitForTimeout(1500);
-const exec = page.locator("h2:has-text('Execution')").locator("xpath=ancestor::section[1]");
-await exec.screenshot({ path: `${OUT}/07-request-trace.png` });
+await result.screenshot({ path: `${OUT}/07-request-trace.png` });
 console.log(`saved ${OUT}/07-request-trace.png`);
 
 // 03 Comparison Lab with real local runs
-await open("/compare?scenario=public-summary", "text=Routing score");
-await page.locator("button:has-text('Run ')").first().click();
+await open("/compare?scenario=public-summary", "text=Value map");
+await run();
+await page.waitForTimeout(800);
 await page.waitForFunction(
-  () => document.body.innerText.includes("Ranked on measured results") && !/\brunning\b|\bqueued\b/.test(document.body.innerText),
+  () => {
+    const text = document.body.innerText.toLowerCase();
+    const idle = [...document.querySelectorAll("button")].some((b) => b.textContent?.startsWith("Run") && !b.disabled);
+    return idle && text.includes("recommended from measured runs") && !text.includes("queued");
+  },
   null,
   { timeout: 900_000, polling: 1000 },
 );

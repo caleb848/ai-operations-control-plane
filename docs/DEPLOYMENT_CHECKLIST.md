@@ -22,7 +22,7 @@ Run through this before the public site goes live. Nothing here spends money: th
 - [ ] `curl -si -X POST https://<preview-url>/api/execute -H 'content-type: application/json' -H 'origin: https://<preview-url>' -d '{"instruction":"Summarize this.","allowLive":true}'` returns **403** with "Execution unavailable in Portfolio Mode".
 - [ ] Function logs show `[control-plane] portfolio mode` and `AI-provider variables in environment: none`, and no unexpected "ignored" settings.
 - [ ] The draft URL sends `X-Robots-Tag: noindex` (the verify script checks this); after publishing, the production URL does not.
-- [ ] Every page shows the PORTFOLIO DEMO banner; all six scenarios on the overview run and finish in 1–3 s.
+- [ ] Every page shows Portfolio Mode (the top-bar pill on desktop, a banner on smaller screens); all six scenarios on the overview run and finish in 1–3 s.
 - [ ] `/about` explains what's real and what's simulated; footer links (if set) point to the right profiles.
 - [ ] Quick phone check: overview, a scenario run, the Comparison Lab.
 - [ ] Response headers include `X-Frame-Options: DENY` and `X-Content-Type-Options: nosniff`.

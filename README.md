@@ -68,7 +68,7 @@ flowchart TD
 | AI Operations Overview | Routing decision | Model Comparison Lab |
 |---|---|---|
 | ![Overview](docs/screenshots/01-overview.png) | ![Routing](docs/screenshots/02-routing-decision.png) | ![Comparison](docs/screenshots/03-comparison-lab.png) |
-| Local vs cloud volume, external API spend vs spend avoided, evaluation, human reviews, policy blocks, live Local AI status and routing distribution. | Request → classifier → policy gate, then the local lane and cloud lane, every model's factor scores, why the winner won and why the others didn't. | One task across local and cloud models: output, evaluation, latency, external API cost, tokens, privacy and data location side by side, with a recommendation. |
+| The week as a story: a routing map of where requests went, destination tiles, traffic by day, API spend against an all-cloud baseline, the guardrails that fired, which models did the work and live Local AI status. | The request moves through classification, policy, capability and economics to one of four destinations (Local AI, Cloud AI, Human review, Blocked), with the reasons in plain words and every model's scores one click deeper. | One task across local and cloud models: a quality-against-cost value map, then output, evaluation, latency, external API cost, tokens and data location side by side, with a recommendation. |
 
 Screenshots are from a local install: real Ollama runs, cloud in DEMO mode.
 
@@ -76,7 +76,7 @@ More: [fail-closed block](docs/screenshots/04-fail-closed.png) · [budget guard]
 
 ## Demo scenarios
 
-All six run from **Route a task**. Organizations, people, emails (`.example`) and phone numbers (555-01xx) are fictional. The routing outcomes below are the same on the public demo, where local runs are replays of recorded real outputs (or a labeled notice) and cloud runs are simulated.
+All six run from **Route a request**. Organizations, people, emails (`.example`) and phone numbers (555-01xx) are fictional. The routing outcomes below are the same on the public demo, where local runs are replays of recorded real outputs (or a labeled notice) and cloud runs are simulated.
 
 | # | Scenario | What happens | Why |
 |---|---|---|---|
@@ -174,7 +174,7 @@ The interface always shows which one produced an answer.
 | Badge | Meaning |
 |---|---|
 | **LOCAL** | Real inference on this device via Ollama. Tokens and timings come from Ollama itself. External API cost is $0.00. |
-| **DEMO** | A cloud model was selected, but `MockProvider` answered because live mode is off. Output sits under a hatched "Simulated output" banner; tokens, latency and cost are labeled *estimated*; simulated spend is tracked separately and never added to external API spend. |
+| **DEMO** | A cloud model was selected, but `MockProvider` answered because live mode is off. Output is marked with a "Simulated output" notice; tokens, latency and cost are labeled *estimated*; simulated spend is tracked separately and never added to external API spend. |
 | **LIVE API** | A real, paid cloud call. Usage and cost come from the provider's reported tokens at list price. |
 
 Zero API cost is not zero compute cost. The dashboard says *External API cost: $0.00* for local runs, not "free".
@@ -365,7 +365,7 @@ interface AIProvider {
 
 Ollama specifics stay inside `providers/ollama`: requests run with thinking disabled (on this hardware thinking turned 10-second answers into multi-minute waits), an explicit `num_ctx`, and `keep_alive`. Load, prompt-eval and generation timings are read from Ollama's response and feed back into the router's latency estimates. Modelfile aliases that share weights (for example `gemma-chat` → `gemma4:12b-it-qat`) are folded into one registry entry.
 
-**Stack:** Next.js 16 (App Router, Cache Components / Partial Prerendering), React 19, TypeScript, Tailwind CSS 4, Radix primitives, better-sqlite3, zod, Vitest, Playwright (screenshots), `@anthropic-ai/sdk`. Charts are hand-built SVG/HTML with a colorblind-validated palette (local = aqua, cloud = blue, policy block = orange; red is reserved for failures).
+**Stack:** Next.js 16 (App Router, Cache Components / Partial Prerendering), React 19, TypeScript, Tailwind CSS 4, Radix primitives, better-sqlite3, zod, Vitest, Playwright (screenshots), `@anthropic-ai/sdk`. Charts are hand-built SVG/HTML with a colorblind-validated palette (local = green, cloud = blue, human review = amber, blocked = rose; red is reserved for failures). Light theme by default, dark one click away; see [docs/design-system.md](docs/design-system.md).
 
 ## Security notes and limitations
 
