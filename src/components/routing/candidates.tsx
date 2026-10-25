@@ -103,9 +103,9 @@ function CandidateRow({ c, d }: { c: CandidateEvaluation; d: RoutingDecision }) 
         <div className="mt-0.5 truncate pl-[18px] text-sm text-fg-3">
           {PROVIDER_NAME[c.providerId]}
           {c.tier !== "local" ? ` · ${c.tier} tier` : ""}
-          {why ? <span className={cn("lg:hidden")}> · {why}</span> : null}
         </div>
-        {why ? <div className="mt-1 hidden pl-[18px] text-sm text-fg-3 lg:block">{why}</div> : null}
+        {/* The reason wraps on its own line at every width; truncating it would hide why a model lost. */}
+        {why ? <div className="mt-1 pl-[18px] text-sm text-fg-3">{why}</div> : null}
       </div>
       <div className="col-span-2 lg:col-span-1">
         <CandidateStatusBadge status={c.status} location={c.location} />

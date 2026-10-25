@@ -183,11 +183,11 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
             <div className="mb-2 text-sm font-medium text-fg-2">Optimize for</div>
             <Segmented ariaLabel="Optimize for" value={priority} onChange={setPriority} options={PRIORITIES.map((p) => ({ value: p, label: SHORT[p], hint: `${PRIORITY_LABEL[p]}: ${PRIORITY_DESCRIPTION[p]}` }))} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <Button variant="ghost" size="lg" onClick={() => setEditing((v) => !v)} aria-expanded={editing}>
               <Pencil className="size-4" /> {editing ? "Done" : "Edit task"}
             </Button>
-            <Button variant={paidCols.length ? "cloud" : "primary"} size="lg" disabled={!decision || busy || !runnable.length} onClick={runAll}>
+            <Button variant={paidCols.length ? "cloud" : "primary"} size="lg" className="flex-1 sm:flex-none" disabled={!decision || busy || !runnable.length} onClick={runAll}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : paidCols.length ? <Radio className="size-4" /> : <Play className="size-4" />}
               {busy
                 ? "Running…"
