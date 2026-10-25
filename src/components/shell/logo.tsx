@@ -1,13 +1,18 @@
-/** Logomark: one request, two lanes (local and cloud). */
-export function Logo({ size = 22 }: { size?: number }) {
+/** Logomark: one request entering a junction and leaving on a chosen route, lit in the brand gradient. */
+export function Logo({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <rect x="0.5" y="0.5" width="23" height="23" rx="6" fill="var(--surface-3)" stroke="var(--line-strong)" />
-      <path d="M6 12 C 10 12, 11 7, 16 7" stroke="var(--local)" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <path d="M6 12 C 10 12, 11 17, 16 17" stroke="var(--cloud)" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <circle cx="6" cy="12" r="2.2" fill="var(--fg)" />
-      <circle cx="17.5" cy="7" r="1.8" fill="var(--local)" />
-      <circle cx="17.5" cy="17" r="1.8" fill="var(--cloud)" />
-    </svg>
+    <span
+      className="relative inline-flex shrink-0 items-center justify-center rounded-[30%] shadow-[0_8px_24px_-8px_color-mix(in_srgb,var(--brand)_90%,transparent),inset_0_1px_0_rgba(255,255,255,0.3)]"
+      style={{ width: size, height: size, background: "var(--brand-gradient)" }}
+      aria-hidden
+    >
+      <svg width={size * 0.72} height={size * 0.72} viewBox="0 0 24 24" fill="none">
+        <path d="M3.5 12 H9.5" stroke="#fff" strokeOpacity="0.75" strokeWidth="2" strokeLinecap="round" />
+        <path d="M9.5 12 C 13 12, 13.5 6.5, 18.5 6.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M9.5 12 C 13 12, 13.5 17.5, 18.5 17.5" stroke="#fff" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="3.6" cy="12" r="2" fill="#fff" />
+        <circle cx="19" cy="6.5" r="2.3" fill="#fff" />
+      </svg>
+    </span>
   );
 }

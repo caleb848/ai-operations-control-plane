@@ -1,11 +1,11 @@
-import { Ban, CheckCircle2, CircleAlert, Info } from "lucide-react";
+import { Check, CircleAlert, Info, ShieldBan } from "lucide-react";
 import type { ReactNode } from "react";
-import { FactorBar } from "@/components/charts/charts";
-import { CandidateStatusBadge } from "@/components/ui/badges";
+import { CandidateStatusBadge, DestinationDot } from "@/components/ui/badges";
 import { Tip } from "@/components/ui/primitives";
 import { PRIORITY_LABEL } from "@/core/routing/config";
 import type { CandidateEvaluation, Factor, Reason, RoutingDecision } from "@/core/types";
 import { cn, formatMs, formatUsd, PROVIDER_NAME } from "@/lib/format";
+import { candidateWhy } from "@/lib/routing-view";
 
 const FACTORS: { key: Factor; label: string }[] = [
   { key: "privacy", label: "Privacy" },
@@ -15,17 +15,26 @@ const FACTORS: { key: Factor; label: string }[] = [
   { key: "latency", label: "Latency" },
 ];
 
-const GATED = new Set(["blocked_policy", "unavailable", "disabled", "context_exceeded"]);
+const ORDER: Record<CandidateEvaluation["status"], number> = {
+  selected: 0,
+  eligible: 1,
+  over_budget: 2,
+  below_threshold: 3,
+  blocked_policy: 4,
+  unavailable: 5,
+  context_exceeded: 6,
+  disabled: 7,
+};
 
 function ScoreTip({ c, d }: { c: CandidateEvaluation; d: RoutingDecision }) {
   const w = d.weights;
   const r = (n: number) => n.toFixed(1);
   return (
-    <div className="w-60 space-y-1">
+    <div className="w-64 space-y-2">
       <div className="font-medium">
         {PRIORITY_LABEL[d.priorityMode]} score · {r(c.routingScore ?? 0)}
       </div>
-      <table className="tnum w-full text-2xs">
+      <table className="tnum w-full text-sm">
         <tbody>
           {FACTORS.map((f) => (
             <tr key={f.key}>
@@ -36,126 +45,108 @@ function ScoreTip({ c, d }: { c: CandidateEvaluation; d: RoutingDecision }) {
           ))}
         </tbody>
       </table>
-      <div className="border-t border-line pt-1 text-2xs text-fg-3">
-        Weights: quality {w.quality} · cost {w.cost} · latency {w.latency} · privacy {w.privacy}. Quality above the {c.quality.required} requirement counts at {Math.round(w.headroom * 100)}%.
+      <div className="border-t border-line pt-2 text-xs leading-4 text-fg-3">
+        Weights: quality {w.quality} · cost {w.cost} · latency {w.latency} · privacy {w.privacy}. Quality above the {c.quality.required} bar counts at {Math.round(w.headroom * 100)}%. Task fit and
+        reasoning come from configured capability profiles, not benchmarks.
       </div>
     </div>
   );
 }
 
-function mainReason(c: CandidateEvaluation): Reason | undefined {
+/** Quality as a bar against the task's bar: the tick is the requirement, the fill is the model. */
+export function QualityBar({ c, className }: { c: CandidateEvaluation; className?: string }) {
+  const meets = c.quality.meets;
   return (
-    c.reasons.find((r) => r.severity === "block") ??
-    c.reasons.find((r) => r.code === "prefer_local" || r.code === "budget_prefers") ??
-    c.reasons.find((r) => r.severity === "warn" && r.code !== "truncation_risk")
-  );
-}
-
-function CandidateCard({ c, d, index }: { c: CandidateEvaluation; d: RoutingDecision; index: number }) {
-  const selected = c.status === "selected";
-  const color = c.location === "local" ? "var(--local)" : "var(--cloud)";
-  const muted = c.status === "below_threshold" || c.status === "over_budget";
-  const why = mainReason(c);
-  return (
-    <div
-      className={cn(
-        "grid animate-rise grid-cols-1 gap-x-5 gap-y-3 rounded-lg border px-4 py-3.5 transition-colors sm:grid-cols-[minmax(180px,1fr)_minmax(220px,1.25fr)_104px]",
-        selected ? (c.location === "local" ? "border-local-line bg-local-soft" : "border-cloud-line bg-cloud-soft") : "border-line bg-surface",
-      )}
-      style={{ animationDelay: `${index * 35}ms` }}
-    >
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <CandidateStatusBadge status={c.status} location={c.location} />
-        </div>
-        <div className="mt-2 text-[15px] font-semibold tracking-[-0.01em] text-fg">{c.displayName}</div>
-        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-3">
-          <span className="size-1.5 rounded-full" style={{ background: color }} />
-          {c.location === "local" ? "Local" : "Cloud"} · {PROVIDER_NAME[c.providerId]}
-          {c.tier !== "local" ? ` · ${c.tier} tier` : ""}
-        </div>
-        {why ? (
-          <div className={cn("mt-2 text-xs", why.severity === "block" ? "text-blocked-fg" : why.severity === "warn" ? "text-warn-fg" : "text-fg-3")}>{why.message}</div>
-        ) : selected ? (
-          <div className="mt-2 text-xs text-fg-2">{c.location === "local" ? "Data never leaves the local machine" : "Approved provider for this classification"}</div>
-        ) : null}
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <div className="relative h-1.5 flex-1 rounded-full bg-track" aria-hidden>
+        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(100, c.quality.score)}%`, background: meets ? `var(--${c.location})` : "var(--fg-4)" }} />
+        <span className="absolute -top-1 h-3.5 w-0.5 -translate-x-1/2 rounded-full bg-fg" style={{ left: `${c.quality.required}%` }} />
       </div>
-      <div className="space-y-1.5 self-center">
-        {FACTORS.map((f) => (
-          <FactorBar key={f.key} label={f.label} value={c.factors[f.key]} color={color} muted={muted} />
-        ))}
-        <div className="pl-[72px] text-2xs text-fg-4">Task fit and reasoning from a configured profile, not a benchmark</div>
-      </div>
-      <div className="flex flex-row items-end justify-between gap-2 sm:flex-col sm:items-end sm:justify-center sm:text-right">
-        <Tip content={<ScoreTip c={c} d={d} />} side="left">
-          <button type="button" className="text-right">
-            <div className={cn("tnum text-[28px] font-semibold leading-8 tracking-[-0.03em]", selected ? "text-fg" : muted ? "text-fg-3" : "text-fg-2")}>
-              {c.routingScore != null ? Math.round(c.routingScore) : "—"}
-            </div>
-            <div className="text-2xs text-fg-3 underline decoration-dotted decoration-fg-4 underline-offset-2">{muted ? "score · not eligible" : "routing score"}</div>
-          </button>
-        </Tip>
-        <div className="space-y-0.5 text-xs">
-          <div className={cn("tnum", c.location === "local" ? "text-local-fg" : "text-fg-2")}>{c.location === "local" ? "$0.00 API" : formatUsd(c.cost.costUsd)}</div>
-          <div className="tnum text-fg-3">
-            {formatMs(c.latency.totalMs)}
-            {c.latency.source === "measured" ? "" : " est."}
-          </div>
-          <div className="tnum text-fg-4">
-            Q {Math.round(c.quality.score)}/{c.quality.required}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GatedRow({ c, index }: { c: CandidateEvaluation; index: number }) {
-  const why = mainReason(c);
-  return (
-    <div className="flex animate-rise flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-line bg-surface px-4 py-2.5" style={{ animationDelay: `${index * 35}ms` }}>
-      <div className="flex min-w-[220px] items-center gap-2.5">
-        <span className="size-1.5 rounded-full" style={{ background: c.location === "local" ? "var(--local)" : "var(--cloud)", opacity: 0.6 }} />
-        <span className="text-sm font-medium text-fg-2">{c.displayName}</span>
-        <CandidateStatusBadge status={c.status} location={c.location} />
-      </div>
-      <div className={cn("min-w-[200px] flex-1 text-xs", c.status === "blocked_policy" ? "text-blocked-fg" : c.status === "unavailable" ? "text-danger-fg" : "text-fg-3")}>{why?.message}</div>
-      {c.location === "cloud" && c.status === "blocked_policy" ? (
-        <Tip content="What this request would have cost on this model if policy allowed it. Not spent.">
-          <span className="tnum text-xs text-fg-4">would cost {formatUsd(c.cost.costUsd)}</span>
-        </Tip>
-      ) : null}
+      <span className="tnum w-14 text-right text-sm text-fg-2">
+        {Math.round(c.quality.score)}
+        <span className="text-fg-3">/{c.quality.required}</span>
+      </span>
     </div>
   );
 }
 
 export function CandidateList({ decision }: { decision: RoutingDecision }) {
-  const scored = decision.candidates.filter((c) => !GATED.has(c.status));
-  const gated = decision.candidates.filter((c) => GATED.has(c.status));
+  const rows = [...decision.candidates].sort((a, b) => ORDER[a.status] - ORDER[b.status] || (b.routingScore ?? -1) - (a.routingScore ?? -1));
   return (
-    <div className="space-y-2">
-      {scored.map((c, i) => (
-        <CandidateCard key={c.modelId} c={c} d={decision} index={i} />
-      ))}
-      {gated.map((c, i) => (
-        <GatedRow key={c.modelId} c={c} index={scored.length + i} />
-      ))}
+    <div>
+      <div className="mb-2 hidden grid-cols-[minmax(0,1.6fr)_minmax(140px,1fr)_minmax(150px,1fr)_84px_72px_56px] gap-4 px-4 lg:grid">
+        {["Model", "Status", "Quality vs bar", "Est. cost", "Latency", "Score"].map((h, i) => (
+          <span key={h} className={cn("eyebrow", i >= 3 && "text-right")}>
+            {h}
+          </span>
+        ))}
+      </div>
+      <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+        {rows.map((c) => (
+          <CandidateRow key={c.modelId} c={c} d={decision} />
+        ))}
+      </ul>
     </div>
   );
 }
 
+function CandidateRow({ c, d }: { c: CandidateEvaluation; d: RoutingDecision }) {
+  const selected = c.status === "selected";
+  const gated = c.routingScore == null;
+  const why = selected ? null : candidateWhy(c);
+  return (
+    <li className={cn("grid grid-cols-2 gap-x-4 gap-y-2 px-4 py-3.5 lg:grid-cols-[minmax(0,1.6fr)_minmax(140px,1fr)_minmax(150px,1fr)_84px_72px_56px] lg:items-center", selected && "bg-surface-2/70")}>
+      <div className="col-span-2 min-w-0 lg:col-span-1">
+        <div className="flex items-center gap-2.5">
+          <DestinationDot destination={c.location} label={<span className={cn("truncate text-base font-medium", gated ? "text-fg-2" : "text-fg")}>{c.displayName}</span>} />
+        </div>
+        <div className="mt-0.5 truncate pl-[18px] text-sm text-fg-3">
+          {PROVIDER_NAME[c.providerId]}
+          {c.tier !== "local" ? ` · ${c.tier} tier` : ""}
+          {why ? <span className={cn("lg:hidden")}> · {why}</span> : null}
+        </div>
+        {why ? <div className="mt-1 hidden pl-[18px] text-sm text-fg-3 lg:block">{why}</div> : null}
+      </div>
+      <div className="col-span-2 lg:col-span-1">
+        <CandidateStatusBadge status={c.status} location={c.location} />
+      </div>
+      <div className="col-span-2 lg:col-span-1">{gated ? <span className="text-sm text-fg-3">Not scored</span> : <QualityBar c={c} />}</div>
+      <div className="tnum text-left text-sm lg:text-right">
+        <span className="text-fg-3 lg:hidden">Cost </span>
+        {c.location === "local" ? <span className="text-local-ink">$0.00</span> : <span className={gated ? "text-fg-3" : "text-fg"}>{formatUsd(c.cost.costUsd)}</span>}
+      </div>
+      <div className="tnum text-right text-sm text-fg-2">
+        <span className="text-fg-3 lg:hidden">Latency </span>
+        {formatMs(c.latency.totalMs)}
+      </div>
+      <div className="col-span-2 flex justify-end lg:col-span-1">
+        {gated ? (
+          <span className="text-sm text-fg-3">—</span>
+        ) : (
+          <Tip content={<ScoreTip c={c} d={d} />} side="left">
+            <button type="button" className="tnum inline-flex h-7 items-center rounded-md px-1.5 text-base font-semibold text-fg underline decoration-line-strong decoration-dotted underline-offset-4 hover:decoration-fg-3" aria-label={`Score ${Math.round(c.routingScore ?? 0)}, show breakdown`}>
+              {Math.round(c.routingScore ?? 0)}
+            </button>
+          </Tip>
+        )}
+      </div>
+    </li>
+  );
+}
+
 const SEVERITY: Record<Reason["severity"], { icon: ReactNode; cls: string }> = {
-  pass: { icon: <CheckCircle2 className="size-3.5" />, cls: "text-ok-fg" },
-  block: { icon: <Ban className="size-3.5" />, cls: "text-blocked-fg" },
-  warn: { icon: <CircleAlert className="size-3.5" />, cls: "text-warn-fg" },
-  info: { icon: <Info className="size-3.5" />, cls: "text-fg-3" },
+  pass: { icon: <Check className="size-4" />, cls: "text-fg-2" },
+  block: { icon: <ShieldBan className="size-4" />, cls: "text-blocked-ink" },
+  warn: { icon: <CircleAlert className="size-4" />, cls: "text-review-ink" },
+  info: { icon: <Info className="size-4" />, cls: "text-fg-3" },
 };
 
+/** The engine's complete reasoning, in its own words. */
 export function Rationale({ reasons }: { reasons: Reason[] }) {
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {reasons.map((r, i) => (
-        <li key={`${r.code}-${i}`} className="flex items-start gap-2 text-sm">
+        <li key={`${r.code}-${i}`} className="flex items-start gap-2.5 text-sm">
           <span className={cn("mt-[2px] shrink-0", SEVERITY[r.severity].cls)}>{SEVERITY[r.severity].icon}</span>
           <span className={cn(r.severity === "block" ? "text-fg" : "text-fg-2")}>{r.message}</span>
         </li>
@@ -163,3 +154,4 @@ export function Rationale({ reasons }: { reasons: Reason[] }) {
     </ul>
   );
 }
+

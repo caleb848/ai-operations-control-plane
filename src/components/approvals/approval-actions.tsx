@@ -39,19 +39,24 @@ export function ApprovalActions({ approvalId, compact }: { approvalId: string; c
           onChange={(e) => setNote(e.target.value)}
           rows={2}
           maxLength={1000}
+          aria-label="Reviewer note"
           placeholder="Reviewer note (recorded in the trace)"
-          className="w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-sm text-fg placeholder:text-fg-4 focus:border-line-strong focus:outline-none"
+          className="w-full rounded-lg border border-line-strong bg-surface-2 px-3.5 py-2.5 text-sm text-fg placeholder:text-fg-3 focus:border-fg-3 focus:outline-none"
         />
       ) : null}
       <div className="flex gap-2">
-        <Button variant="local" disabled={Boolean(busy)} onClick={() => decide("approved")} className="flex-1">
+        <Button variant="primary" disabled={Boolean(busy)} onClick={() => decide("approved")} className="flex-1">
           {busy === "approved" ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Approve
         </Button>
         <Button variant="danger" disabled={Boolean(busy)} onClick={() => decide("rejected")} className="flex-1">
           {busy === "rejected" ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />} Reject
         </Button>
       </div>
-      {error ? <p className="text-xs text-danger-fg">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-danger-ink">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

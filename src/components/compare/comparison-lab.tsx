@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, ChevronDown, FlaskConical, HardDrive, Loader2, Lock, Play, Radio, TriangleAlert } from "lucide-react";
+import { Award, ChevronDown, Cloud, FlaskConical, HardDrive, Laptop, Lightbulb, Loader2, Lock, Pencil, Play, Radio, ShieldBan, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { recommend, type ComparisonRun } from "@/core/evaluation/recommend";
 import { isRunnable } from "@/core/routing/engine";
@@ -12,11 +12,13 @@ import { recordedReplay } from "@/components/routing/execution-result";
 import { useDeployment } from "@/components/shell/deployment-context";
 import { announceChange, useStatus } from "@/components/shell/status-context";
 import { rememberRecord } from "@/lib/session-records";
-import { CandidateStatusBadge, ClassificationBadge, LocationChip, ModeBadge } from "@/components/ui/badges";
+import { Badge, CandidateStatusBadge, ClassificationChip, DestinationBadge, ModeTag } from "@/components/ui/badges";
 import { Markdown } from "@/components/ui/markdown";
-import { Button, Panel, SectionLabel, Skeleton, Tip } from "@/components/ui/primitives";
+import { Button, Skeleton, Tip } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/segmented";
 import { cn, formatMs, formatTokens, formatUsd, PROVIDER_NAME } from "@/lib/format";
+import { SCENARIO_STORY } from "@/lib/routing-view";
+import { ValueMap, ValueTakeaways } from "./value-map";
 
 /** "estimate" = cloud model in DEMO mode: not called, shown with the router's estimates only. */
 type RunState = { state: "queued" | "running" | "done" | "skipped" | "estimate" | "error"; record?: ExecutionRecord; error?: string };
@@ -148,135 +150,181 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
   }, [active, runs, priority, decision]);
 
   const scenario = scenarios.find((s) => s.id === scenarioId);
+  const gatedCount = active.filter((c) => isGated(c.status)).length;
 
   return (
-    <div className="space-y-4">
-      <Panel>
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 p-4">
+    <div className="space-y-8">
+      <section aria-label="Comparison setup" className="card">
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-4 p-5 sm:p-6">
           <div className="min-w-[240px] flex-1">
-            <div className="mb-1.5 text-xs font-medium text-fg-2">Task</div>
+            <label htmlFor="compare-task" className="mb-2 block text-sm font-medium text-fg-2">
+              Task
+            </label>
             <div className="relative">
               <select
+                id="compare-task"
                 value={scenarioId ?? ""}
                 onChange={(e) => pickScenario(e.target.value)}
-                className="h-8 w-full appearance-none rounded-md border border-line bg-surface-2 pl-3 pr-8 text-sm text-fg focus:border-line-strong focus:outline-none"
+                className="h-11 w-full appearance-none rounded-lg border border-line-strong bg-surface-2 pl-3.5 pr-9 text-md text-fg focus:border-fg-3 focus:outline-none"
               >
                 {!scenarioId ? <option value="">Custom task</option> : null}
                 {scenarios
                   .filter((s) => !s.simulation)
                   .map((s) => (
                     <option key={s.id} value={s.id}>
-                      {String(s.number).padStart(2, "0")} · {s.title}
+                      {SCENARIO_STORY[s.id]?.title ?? s.title}
                     </option>
                   ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-2 size-4 text-fg-3" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-3.5 size-4 text-fg-3" aria-hidden />
             </div>
           </div>
           <div>
-            <div className="mb-1.5 text-xs font-medium text-fg-2">Priority (for the recommendation)</div>
-            <Segmented ariaLabel="Priority" value={priority} onChange={setPriority} options={PRIORITIES.map((p) => ({ value: p, label: SHORT[p], hint: `${PRIORITY_LABEL[p]}: ${PRIORITY_DESCRIPTION[p]}` }))} />
+            <div className="mb-2 text-sm font-medium text-fg-2">Optimize for</div>
+            <Segmented ariaLabel="Optimize for" value={priority} onChange={setPriority} options={PRIORITIES.map((p) => ({ value: p, label: SHORT[p], hint: `${PRIORITY_LABEL[p]}: ${PRIORITY_DESCRIPTION[p]}` }))} />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setEditing((v) => !v)}>
-              {editing ? "Hide" : "Edit"} task text
+            <Button variant="ghost" size="lg" onClick={() => setEditing((v) => !v)} aria-expanded={editing}>
+              <Pencil className="size-4" /> {editing ? "Done" : "Edit task"}
             </Button>
-            <Button variant={paidCols.length ? "cloud" : "primary"} disabled={!decision || busy || !runnable.length} onClick={runAll} className="h-8">
+            <Button variant={paidCols.length ? "cloud" : "primary"} size="lg" disabled={!decision || busy || !runnable.length} onClick={runAll}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : paidCols.length ? <Radio className="size-4" /> : <Play className="size-4" />}
               {busy
                 ? "Running…"
                 : portfolio
                   ? `Run simulated comparison`
                   : confirm
-                  ? `Confirm · up to ${formatUsd(worstCase)}`
-                  : `Run ${localCount} local${paidCols.length ? ` + ${paidCols.length} live` : ""} model${runnable.length === 1 ? "" : "s"}`}
+                    ? `Confirm · up to ${formatUsd(worstCase)}`
+                    : `Run ${localCount} local${paidCols.length ? ` + ${paidCols.length} live` : ""} model${runnable.length === 1 ? "" : "s"}`}
             </Button>
           </div>
         </div>
         {editing ? (
-          <div className="grid grid-cols-1 gap-3 border-t border-line p-4 md:grid-cols-2">
-            <textarea
-              value={instruction}
-              onChange={(e) => {
-                setInstruction(e.target.value);
-                setScenarioId(null);
-              }}
-              rows={5}
-              className="rounded-md border border-line bg-surface-2 px-3 py-2 text-sm text-fg focus:border-line-strong focus:outline-none"
-            />
-            <textarea
-              value={context}
-              onChange={(e) => {
-                setContext(e.target.value);
-                setScenarioId(null);
-              }}
-              rows={5}
-              spellCheck={false}
-              className="rounded-md border border-line bg-surface-2 px-3 py-2 font-mono text-xs text-fg-2 focus:border-line-strong focus:outline-none"
-            />
+          <div className="grid grid-cols-1 gap-4 border-t border-line p-5 sm:p-6 md:grid-cols-2">
+            <div>
+              <label htmlFor="compare-instruction" className="mb-2 block text-sm font-medium text-fg-2">
+                Request
+              </label>
+              <textarea
+                id="compare-instruction"
+                value={instruction}
+                onChange={(e) => {
+                  setInstruction(e.target.value);
+                  setScenarioId(null);
+                }}
+                rows={5}
+                className="w-full rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-md text-fg focus:border-fg-3 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="compare-context" className="mb-2 block text-sm font-medium text-fg-2">
+                Source document <span className="font-normal text-fg-3">(optional)</span>
+              </label>
+              <textarea
+                id="compare-context"
+                value={context}
+                onChange={(e) => {
+                  setContext(e.target.value);
+                  setScenarioId(null);
+                }}
+                rows={5}
+                spellCheck={false}
+                className="scrollbar-thin w-full rounded-xl border border-line-strong bg-surface-2 px-4 py-3 font-mono text-[13px] leading-[21px] text-fg-2 focus:border-fg-3 focus:outline-none"
+              />
+            </div>
           </div>
         ) : (
-          <div className="border-t border-line px-4 py-2.5 text-xs text-fg-3">
-            <span className="text-fg-2">{instruction}</span>
-            {decision ? (
-              <span className="ml-2 inline-flex translate-y-[3px] items-center gap-1.5">
-                <ClassificationBadge value={decision.profile.classification} size="xs" />
-              </span>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-5 py-4 sm:px-6">
+            <p className="min-w-0 flex-1 text-md text-fg">{instruction}</p>
+            {decision ? <ClassificationChip value={decision.profile.classification} /> : null}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-2 text-xs text-fg-3">
-          <span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-line px-5 py-3 text-sm text-fg-3 sm:px-6">
+          <span className="inline-flex items-center gap-1.5">
+            <Laptop className="size-4" aria-hidden />
             {portfolio
-              ? `${localCount} local: simulated, replaying recorded real runs where available`
-              : `${localCount} local run${localCount === 1 ? "" : "s"} (real, ~${formatMs(estLocalMs)} sequential)`}
+              ? `${localCount} local: simulated, replaying recorded runs where they exist`
+              : `${localCount} local run${localCount === 1 ? "" : "s"}, real, about ${formatMs(estLocalMs)} in sequence`}
           </span>
-          <span>·</span>
-          <span>
-            {cloudLive
-              ? `${paidCols.length} cloud live (worst case ${formatUsd(worstCase)})`
-              : `${estimateOnly.length} cloud not called (DEMO): estimates only`}
+          <span className="inline-flex items-center gap-1.5">
+            <Cloud className="size-4" aria-hidden />
+            {cloudLive ? `${paidCols.length} cloud live, worst case ${formatUsd(worstCase)}` : `${estimateOnly.length} cloud: not called, estimates only`}
           </span>
-          {active.filter((c) => isGated(c.status)).length ? (
-            <>
-              <span>·</span>
-              <span className="text-blocked-fg">{active.filter((c) => isGated(c.status)).length} blocked (policy or availability)</span>
-            </>
+          {gatedCount ? (
+            <span className="inline-flex items-center gap-1.5 text-blocked-ink">
+              <ShieldBan className="size-4" aria-hidden /> {gatedCount} not allowed or unavailable
+            </span>
           ) : null}
-          <span className="ml-auto">Policy applies here too: blocked models are never called.</span>
+          <span className="lg:ml-auto">Policy applies here too: a blocked model is never called.</span>
         </div>
-      </Panel>
+      </section>
+
+      {decision ? (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+          <section aria-labelledby="value-title" className="card card-glow overflow-hidden p-5 sm:p-8">
+            <div className="mb-6">
+              <h2 id="value-title" className="text-xl font-semibold text-fg">
+                Value map
+              </h2>
+              <p className="mt-1 text-sm text-fg-3">Where each model lands on quality and cost for this task, before anything runs. The ringed dot is the router&apos;s pick.</p>
+            </div>
+            <ValueMap decision={decision} recommendedId={rec?.modelId} />
+          </section>
+          <ValueTakeaways decision={decision} />
+        </div>
+      ) : (
+        <Skeleton className="h-[440px] w-full rounded-2xl" />
+      )}
 
       {rec && rec.modelId && decision ? <RecommendationCard rec={rec} decision={decision} /> : null}
+      {rec && !rec.modelId && !busy ? (
+        <p className="flex items-start gap-2.5 rounded-xl border border-dashed border-line-strong px-4 py-3 text-md text-fg-2">
+          <FlaskConical className="mt-1 size-4 shrink-0 text-fg-3" aria-hidden />
+          <span>
+            <span className="font-medium text-fg">No recommendation for this run.</span> Only real or recorded output can be recommended, and these outputs were
+            simulated. The routing scores and estimates above still apply.
+          </span>
+        </p>
+      ) : null}
 
-      <Panel className="overflow-hidden">
+      <section aria-labelledby="side-title" className="card overflow-hidden">
+        <div className="flex flex-wrap items-baseline justify-between gap-3 px-5 pb-4 pt-6 sm:px-6">
+          <h2 id="side-title" className="text-xl font-semibold text-fg">
+            Side by side
+          </h2>
+          <span className="text-sm text-fg-3">Untick a model to leave it out of the run.</span>
+        </div>
         {!decision ? (
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-5">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          <div className="scrollbar-thin overflow-x-auto">
-            <table className="w-full min-w-[980px] table-fixed border-collapse text-sm">
+          <div className="scrollbar-thin overflow-x-auto border-t border-line" tabIndex={0} aria-label="Model comparison table">
+            <table className="w-full min-w-[960px] table-fixed border-collapse text-sm">
               <colgroup>
-                <col className="w-[156px]" />
+                <col className="w-[164px]" />
                 {columns.map((c) => (
                   <col key={c.modelId} />
                 ))}
               </colgroup>
               <thead>
                 <tr className="border-b border-line align-top">
-                  <th className="px-4 py-3 text-left text-xs font-normal text-fg-3">Model</th>
+                  <th scope="col" className="sticky left-0 z-10 bg-surface px-5 py-4 text-left text-sm font-normal text-fg-3 sm:px-6">
+                    Model
+                  </th>
                   {columns.map((c) => {
                     const on = selected?.has(c.modelId) ?? true;
                     const isRec = rec?.modelId === c.modelId;
+                    const isPick = decision.selectedModelId === c.modelId;
                     return (
-                      <th key={c.modelId} className={cn("border-l border-line px-3 py-3 text-left font-normal", !on && "opacity-40", isRec && (c.location === "local" ? "bg-local-soft" : "bg-cloud-soft"))}>
-                        <label className="flex cursor-pointer items-start gap-2">
+                      <th scope="col" key={c.modelId} className={cn("border-l border-line px-4 py-4 text-left font-normal", !on && "opacity-45", isRec && "bg-surface-2")}>
+                        <label className="flex cursor-pointer items-start gap-2.5">
                           <input
                             type="checkbox"
-                            className="mt-1"
+                            className="mt-1 size-4 accent-[var(--fg)]"
                             checked={on}
+                            aria-label={`Include ${c.displayName}`}
                             onChange={(e) =>
                               setSelected((prev) => {
                                 const n = new Set(prev ?? []);
@@ -287,12 +335,20 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
                             }
                           />
                           <span className="min-w-0">
-                            <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-fg">
-                              {c.shortName}
-                              {isRec ? <Award className="size-3.5 shrink-0 text-ok-fg" /> : null}
+                            <span className="flex items-center gap-2.5">
+                              <span className="icon-tile size-8 !rounded-[10px] font-display text-sm font-bold" style={{ "--tone": `var(--${c.location})`, "--tone-ink": `var(--${c.location}-ink)` } as React.CSSProperties}>
+                                {c.shortName.charAt(0)}
+                              </span>
+                              <span className="block truncate text-md font-semibold text-fg">{c.shortName}</span>
                             </span>
-                            <span className="mt-1 flex flex-wrap gap-1">
-                              <LocationChip location={c.location} size="xs" />
+                            <span className="mt-1.5 flex flex-wrap gap-1.5">
+                              <DestinationBadge destination={c.location} size="xs" />
+                              {isPick ? <Badge size="xs">Router&apos;s pick</Badge> : null}
+                              {isRec ? (
+                                <Badge size="xs">
+                                  <Award /> Recommended
+                                </Badge>
+                              ) : null}
                             </span>
                           </span>
                         </label>
@@ -302,7 +358,7 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
                 </tr>
               </thead>
               <tbody>
-                <Row label="Policy status">
+                <Row label="Eligibility" hint="Policy, availability and budget gates first; then only models that clear the quality bar compete, unless none do">
                   {columns.map((c) => (
                     <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
                       {isGated(c.status) ? (
@@ -311,8 +367,10 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
                             <CandidateStatusBadge status={c.status} location={c.location} />
                           </span>
                         </Tip>
+                      ) : c.status === "below_threshold" ? (
+                        <span className="text-review-ink">Below the quality bar</span>
                       ) : (
-                        <span className="text-xs text-ok-fg">Permitted</span>
+                        <span className="text-fg-2">Eligible</span>
                       )}
                     </Cell>
                   ))}
@@ -324,36 +382,35 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
                     </Cell>
                   ))}
                 </Row>
-                <Row label="Data location">
+                <Row label="Routing score" hint="The router's weighted score for this priority, before execution. The highest-scoring eligible model wins.">
                   {columns.map((c) => (
                     <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
-                      <span className={cn("text-xs", c.location === "local" ? "text-local-fg" : "text-fg-2")}>{c.location === "local" ? (portfolio ? "Developer's Mac (reference)" : "This device") : `${PROVIDER_NAME[c.providerId]} API (cloud)`}</span>
+                      <span className="tnum text-lg font-semibold text-fg">{c.routingScore != null ? Math.round(c.routingScore) : "—"}</span>
                     </Cell>
                   ))}
                 </Row>
-                <Row label="Routing score" hint="From the router, before execution">
+                <Row label="Quality / bar" hint="Capability profile for this task against the quality it requires">
                   {columns.map((c) => (
                     <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
-                      <span className="tnum text-base font-semibold text-fg">{c.routingScore != null ? Math.round(c.routingScore) : "—"}</span>
-                      <span className="tnum ml-1.5 text-xs text-fg-4">
-                        Q {Math.round(c.quality.score)}/{c.quality.required}
-                      </span>
+                      <span className="tnum text-fg">{Math.round(c.quality.score)}</span>
+                      <span className="tnum text-fg-3"> / {c.quality.required}</span>
+                      <span className={cn("ml-2 text-sm", c.quality.meets ? "text-fg-3" : "text-review-ink")}>{c.quality.meets ? "clears" : "below"}</span>
                     </Cell>
                   ))}
                 </Row>
-                <Row label="Evaluation estimate" hint="Heuristic checks on the actual output">
+                <Row label="Evaluation" hint="Heuristic checks on the actual output">
                   {columns.map((c) => {
                     const r = runs[c.modelId]?.record;
                     return (
                       <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
                         {runs[c.modelId]?.state === "estimate" || (!cloudLive && c.location === "cloud" && !isGated(c.status)) ? (
-                          <span className="text-xs text-fg-4">n/a · not called</span>
+                          <span className="text-fg-3">Not called</span>
                         ) : r && r.evalScore == null ? (
-                          <span className="text-xs text-fg-4">n/a · simulated text</span>
+                          <span className="text-fg-3">Simulated text</span>
                         ) : r?.evalScore != null && r.evaluation ? (
                           <span className="inline-flex items-baseline gap-1.5">
-                            <span className="tnum text-base font-semibold text-fg">{r.evalScore}</span>
-                            <span className="text-2xs text-fg-4">
+                            <span className="tnum text-lg font-semibold text-fg">{r.evalScore}</span>
+                            <span className="text-sm text-fg-3">
                               {r.evaluation.checks.filter((x) => x.passed).length}/{r.evaluation.checks.length} checks
                             </span>
                           </span>
@@ -369,24 +426,24 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
                     const r = runs[c.modelId]?.record;
                     return (
                       <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
-                        <span className="tnum text-sm text-fg">{formatMs(r?.latencyMs ?? c.latency.totalMs)}</span>
-                        <span className="ml-1.5 text-2xs text-fg-4">{r ? (r.latencySource === "measured" ? "measured" : r.latencySource === "recorded" ? "recorded run" : "estimated") : "estimate"}</span>
+                        <span className="tnum text-fg">{formatMs(r?.latencyMs ?? c.latency.totalMs)}</span>
+                        <span className="ml-1.5 text-sm text-fg-3">{r ? (r.latencySource === "measured" ? "measured" : r.latencySource === "recorded" ? "recorded run" : "estimated") : "estimate"}</span>
                       </Cell>
                     );
                   })}
                 </Row>
-                <Row label="External API cost">
+                <Row label="API cost">
                   {columns.map((c) => {
                     const r = runs[c.modelId]?.record;
                     return (
                       <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
                         {c.location === "local" ? (
-                          <span className="tnum text-sm font-medium text-local-fg">$0.00</span>
+                          <span className="tnum font-medium text-fg">$0.00</span>
                         ) : r && r.mode === "live" ? (
-                          <span className="tnum text-sm font-medium text-fg">{formatUsd(r.externalCostUsd)}</span>
+                          <span className="tnum font-medium text-fg">{formatUsd(r.externalCostUsd)}</span>
                         ) : (
-                          <span className="tnum text-sm text-fg-2">
-                            {formatUsd(c.cost.costUsd)} <span className="text-2xs text-fg-4">est.</span>
+                          <span className="tnum text-fg">
+                            {formatUsd(c.cost.costUsd)} <span className="text-sm text-fg-3">est.</span>
                           </span>
                         )}
                       </Cell>
@@ -398,63 +455,53 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
                     const r = runs[c.modelId]?.record;
                     return (
                       <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
-                        <span className="tnum text-xs text-fg-2">
+                        <span className="tnum text-fg-2">
                           {formatTokens(r?.inputTokens ?? c.cost.inputTokens)} → {formatTokens(r?.outputTokens ?? c.cost.outputTokens)}
                         </span>
-                        <span className="ml-1.5 text-2xs text-fg-4">{r?.tokenSource === "provider" ? "reported" : "est."}</span>
+                        <span className="ml-1.5 text-sm text-fg-3">{r?.tokenSource === "provider" ? "reported" : "est."}</span>
                       </Cell>
                     );
                   })}
                 </Row>
-                <Row label="Privacy">
+                <Row label="Data goes to">
                   {columns.map((c) => (
                     <Cell key={c.modelId} c={c} selected={selected} rec={rec?.modelId}>
-                      {c.location === "local" ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-local-fg">
-                          <HardDrive className="size-3" /> Local
-                        </span>
-                      ) : (
-                        <span className="text-xs text-fg-2">Cloud · external transfer</span>
-                      )}
+                      <span className="text-fg-2">{c.location === "local" ? (portfolio ? "Developer's Mac (reference)" : "Stays on this device") : `${PROVIDER_NAME[c.providerId]} API`}</span>
                     </Cell>
                   ))}
                 </Row>
                 <tr className="align-top">
-                  <td className="px-4 py-3 text-xs text-fg-3">Output</td>
+                  <th scope="row" className="sticky left-0 z-10 bg-surface px-5 py-4 text-left text-sm font-normal text-fg-3 sm:px-6">
+                    Output
+                  </th>
                   {columns.map((c) => {
                     const run = runs[c.modelId];
                     const r = run?.record;
                     const on = selected?.has(c.modelId) ?? true;
                     return (
-                      <td key={c.modelId} className={cn("border-l border-line px-3 py-3", !on && "opacity-40")}>
+                      <td key={c.modelId} className={cn("border-l border-line px-4 py-4", !on && "opacity-45", rec?.modelId === c.modelId && "bg-surface-2")}>
                         {run?.state === "estimate" || (!cloudLive && c.location === "cloud" && !isGated(c.status) && !r) ? (
-                          <div className="hatch rounded-md border border-warn/30 px-2.5 py-2 text-xs text-fg-2">
-                            <div className="mb-1 flex items-center gap-1 font-medium text-warn-fg">
-                              <FlaskConical className="size-3" /> Not called (DEMO)
+                          <div className="rounded-lg border border-dashed border-line-strong px-3 py-2.5 text-sm text-fg-3">
+                            <div className="mb-1 flex items-center gap-1.5 font-medium text-fg-2">
+                              <FlaskConical className="size-3.5" aria-hidden /> Not called
                             </div>
-                            No output: cloud is in DEMO mode, so this model is not called. Estimated {formatUsd(c.cost.costUsd)} and ~{formatMs(c.latency.totalMs)} for this task.
-                            <div className="mt-1 text-fg-4">{portfolio ? "Real cloud output is available only when the project runs locally with live mode on." : "Enable live mode to compare its real output."}</div>
+                            Estimated {formatUsd(c.cost.costUsd)} and about {formatMs(c.latency.totalMs)} for this task.{" "}
+                            {portfolio ? "Real cloud output needs a local install with live mode on." : "Turn on live mode to compare its real output."}
                           </div>
                         ) : r?.outputText ? (
-                          <div className={cn("relative overflow-hidden rounded-md border", r.mode === "demo" ? "hatch border-warn/30" : r.mode === "local" ? "border-local-line" : "border-cloud-line")}>
-                            <div className={cn("flex items-center gap-1 px-2 py-1 text-2xs", r.mode === "demo" ? "text-warn-fg" : r.mode === "local" ? "bg-local-soft text-local-fg" : "bg-cloud-soft text-cloud-fg")}>
-                              {r.mode === "demo" ? <FlaskConical className="size-3" /> : r.mode === "local" ? <HardDrive className="size-3" /> : <Radio className="size-3" />}
-                              {r.mode === "demo"
-                                ? recordedReplay(r)
-                                  ? "Recorded real output · replayed, not live"
-                                  : "Simulated · model not called"
-                                : r.mode === "local"
-                                  ? "Real output · on-device"
-                                  : "Real output · live API"}
+                          <div className="overflow-hidden rounded-lg border border-line">
+                            <div className="flex items-center gap-1.5 border-b border-line bg-surface-2/60 px-3 py-1.5 text-xs text-fg-2">
+                              {r.mode === "demo" ? <FlaskConical className="size-3.5" aria-hidden /> : r.mode === "local" ? <HardDrive className="size-3.5" aria-hidden /> : <Radio className="size-3.5" aria-hidden />}
+                              {r.mode === "demo" ? (recordedReplay(r) ? "Recorded real output, replayed" : "Simulated, model not called") : r.mode === "local" ? "Real output, on-device" : "Real output, live API"}
                             </div>
-                            <div className="scrollbar-thin max-h-[300px] overflow-y-auto bg-surface px-2.5 py-2 [&_.prose-output]:text-xs [&_.prose-output]:leading-[18px]">
+                            <div className="scrollbar-thin max-h-[320px] overflow-y-auto px-3 py-2.5 [&_.prose-output]:text-[13px] [&_.prose-output]:leading-5" tabIndex={0} aria-label={`${c.shortName} output`}>
                               <Markdown text={r.outputText} />
                             </div>
                           </div>
                         ) : isGated(c.status) ? (
-                          <div className="flex items-start gap-1.5 text-xs text-blocked-fg">
-                            <Lock className="mt-0.5 size-3 shrink-0" />
-                            <span>Not executed. {c.reasons.find((x) => x.severity === "block")?.message}</span>
+                          <div className="flex items-start gap-1.5 text-sm text-blocked-ink">
+                            <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                            <span>Not run. {c.reasons.find((x) => x.severity === "block")?.message}</span>
                           </div>
                         ) : (
                           <Pending run={run} empty="Run the comparison to see output" />
@@ -467,17 +514,25 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
             </table>
           </div>
         )}
-      </Panel>
-      {scenario ? <p className="text-xs text-fg-4">Scenario {scenario.number}: {scenario.lesson}</p> : null}
+      </section>
+      {scenario ? (
+        <p className="flex items-start gap-2 text-sm text-fg-3">
+          <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            <span className="font-medium text-fg-2">{(SCENARIO_STORY[scenario.id]?.title ?? scenario.title).replace(/\.$/, "")}.</span> {scenario.lesson}
+          </span>
+        </p>
+      ) : null}
       {portfolio ? (
-        <p className="text-xs text-fg-4">
-          Portfolio demo: no model is called from this site. Local columns replay outputs recorded from real Gemma 4 12B and Qwen 3.5 9B runs on the
-          developer&apos;s Mac when one exists for this exact task; cloud columns show the router&apos;s estimates only.
+        <p className="text-sm text-fg-3">
+          No model is called from this site. Local columns replay outputs recorded from real Gemma 4 12B and Qwen 3.5 9B runs on the developer&apos;s Mac when one exists for
+          this exact task; cloud columns show the router&apos;s estimates only.
         </p>
       ) : status && !status.config.cloudLive ? (
-        <p className="text-xs text-fg-4">
-          Cloud models are not called because live mode is off; their columns show the router&apos;s estimates. Set <code className="font-mono">AI_LIVE_MODE=true</code>, <code className="font-mono">DEFAULT_PROVIDER=live</code> and an API key to compare real cloud outputs; each paid
-          call reserves its worst-case cost first and identical requests are served from cache.
+        <p className="text-sm text-fg-3">
+          Cloud models are not called because live mode is off; their columns show the router&apos;s estimates. Set <code className="font-mono text-[13px]">AI_LIVE_MODE=true</code>,{" "}
+          <code className="font-mono text-[13px]">DEFAULT_PROVIDER=live</code> and an API key to compare real cloud outputs; each paid call reserves its worst-case cost first and
+          identical requests are served from cache.
         </p>
       ) : null}
     </div>
@@ -487,15 +542,15 @@ export function ComparisonLab({ scenarios, initialScenarioId }: { scenarios: Sce
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <tr className="border-b border-line">
-      <td className="px-4 py-2.5 align-middle text-xs text-fg-3">
+      <th scope="row" className="sticky left-0 z-10 bg-surface px-5 py-3 text-left align-middle text-sm font-normal text-fg-3 sm:px-6">
         {hint ? (
           <Tip content={hint}>
-            <span className="cursor-help underline decoration-dotted decoration-fg-4 underline-offset-2">{label}</span>
+            <span className="cursor-help underline decoration-line-strong decoration-dotted underline-offset-4">{label}</span>
           </Tip>
         ) : (
           label
         )}
-      </td>
+      </th>
       {children}
     </tr>
   );
@@ -503,72 +558,63 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 
 function Cell({ c, selected, rec, children }: { c: CandidateEvaluation; selected: Set<string> | null; rec?: string | null; children: ReactNode }) {
   const on = selected?.has(c.modelId) ?? true;
-  const isRec = rec === c.modelId;
-  return <td className={cn("border-l border-line px-3 py-2.5 align-middle", !on && "opacity-40", isRec && (c.location === "local" ? "bg-local-soft" : "bg-cloud-soft"))}>{children}</td>;
+  return <td className={cn("border-l border-line px-4 py-3 align-middle", !on && "opacity-45", rec === c.modelId && "bg-surface-2")}>{children}</td>;
 }
 
 function ExecCell({ c, run, cloudLive, portfolio }: { c: CandidateEvaluation; run?: RunState; cloudLive: boolean; portfolio: boolean }) {
-  if (isGated(c.status)) return <span className="text-xs text-fg-4">Not executed</span>;
+  if (isGated(c.status)) return <span className="text-fg-3">Not run</span>;
   if (run?.state === "estimate" || (!cloudLive && c.location === "cloud"))
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-warn-fg">
-        <FlaskConical className="size-3" /> Not called · DEMO
+      <span className="inline-flex items-center gap-1.5 text-fg-3">
+        <FlaskConical className="size-3.5" aria-hidden /> Estimates only
       </span>
     );
-  if (run?.record && run.state === "done")
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        <ModeBadge mode={run.record.mode} size="xs" />
-        {run.record.mode === "demo" && recordedReplay(run.record) ? <span className="text-2xs text-fg-3">recorded</span> : null}
-      </span>
-    );
-  if (run?.state === "error") return <span className="text-xs text-danger-fg">{run.error}</span>;
+  if (run?.record && run.state === "done") return <ModeTag mode={run.record.mode === "demo" && recordedReplay(run.record) ? "recorded" : run.record.mode} size="xs" />;
+  if (run?.state === "error") return <span className="text-danger-ink">{run.error}</span>;
   if (run?.state === "running") return <Pending run={run} />;
-  return (
-    <span className="text-xs text-fg-4">
-      {c.location === "local" ? (portfolio ? "Will simulate (recorded where available)" : "Will run locally") : cloudLive ? "Will call live API" : "Will simulate (DEMO)"}
-    </span>
-  );
+  return <span className="text-fg-3">{c.location === "local" ? (portfolio ? "Simulated, recorded where possible" : "Runs locally") : cloudLive ? "Calls the live API" : "Simulated"}</span>;
 }
 
 function Pending({ run, empty = "—" }: { run?: RunState; empty?: string }) {
   if (run?.state === "running")
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-fg-2">
-        <Loader2 className="size-3 animate-spin" /> running
+      <span className="inline-flex items-center gap-1.5 text-fg-2">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden /> Running
       </span>
     );
-  if (run?.state === "queued") return <span className="text-xs text-fg-4">queued</span>;
-  return <span className="text-xs text-fg-4">{empty}</span>;
+  if (run?.state === "queued") return <span className="text-fg-3">Queued</span>;
+  return <span className="text-fg-3">{empty}</span>;
 }
 
 function RecommendationCard({ rec, decision }: { rec: NonNullable<ReturnType<typeof recommend>>; decision: RoutingDecision }) {
   const c = decision.candidates.find((x) => x.modelId === rec.modelId);
   if (!c) return null;
-  const local = c.location === "local";
   return (
-    <div className={cn("flex animate-rise flex-wrap items-start gap-4 rounded-lg border px-4 py-3.5", local ? "border-local-line bg-local-soft" : "border-cloud-line bg-cloud-soft")}>
-      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md text-white", local ? "bg-local" : "bg-cloud")}>
-        <Award className="size-4" />
-      </span>
-      <div className="min-w-[220px]">
-        <SectionLabel>Recommended among measured runs</SectionLabel>
-        <div className="mt-0.5 flex items-center gap-2">
-          <span className="text-[16px] font-semibold text-fg">{c.displayName}</span>
-          <LocationChip location={c.location} />
+    <section aria-labelledby="rec-title" className="card animate-rise p-6 sm:p-8">
+      <div className="flex flex-wrap items-start gap-x-10 gap-y-5">
+        <div className="min-w-[240px]">
+          <div className="eyebrow flex items-center gap-1.5">
+            <Award className="size-3.5" aria-hidden /> Recommended from measured runs
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <h2 id="rec-title" className="text-3xl font-semibold text-fg">
+              {c.displayName}
+            </h2>
+            <DestinationBadge destination={c.location} size="md" />
+          </div>
+          <p className="mt-1.5 text-sm text-fg-3">
+            Ranked on {rec.ranked.length} run{rec.ranked.length === 1 ? "" : "s"} in {PRIORITY_LABEL[decision.priorityMode]} mode
+          </p>
         </div>
-        <div className="mt-1 text-xs text-fg-3">
-          Ranked on measured results · {rec.ranked.length} run{rec.ranked.length === 1 ? "" : "s"} · {PRIORITY_LABEL[decision.priorityMode]}
-        </div>
+        <ul className="min-w-[280px] flex-1 space-y-2 text-md text-fg-2">
+          {rec.reasons.map((r, i) => (
+            <li key={i} className="flex gap-2.5">
+              {r.includes("Not called") ? <TriangleAlert className="mt-1 size-4 shrink-0 text-review-ink" aria-hidden /> : <span className="mt-[11px] size-1.5 shrink-0 rounded-full bg-fg-3" aria-hidden />}
+              <span>{r}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="min-w-[280px] flex-1 space-y-1 text-sm text-fg-2">
-        {rec.reasons.map((r, i) => (
-          <li key={i} className="flex gap-2">
-            {r.includes("Not called") ? <TriangleAlert className="mt-[3px] size-3.5 shrink-0 text-warn-fg" /> : <span className="mt-[9px] size-1 shrink-0 rounded-full bg-fg-3" />}
-            <span>{r}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    </section>
   );
 }

@@ -1,19 +1,19 @@
-import { FlaskConical, Route } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { KpiStrip } from "@/components/overview/kpis";
-import { PortfolioIntro } from "@/components/overview/portfolio-intro";
-import { loadConfig } from "@/config/env";
 import { LocalAiPanel } from "@/components/overview/local-ai-panel";
-import { GovernanceFeed, LocationChart, RecentRequests, RoutingDistribution } from "@/components/overview/sections";
-import { PageHeader } from "@/components/ui/page-header";
-import { Skeleton } from "@/components/ui/primitives";
+import { DestinationTiles, EconomicsCard, GovernanceTiles, HeroCard, Leaderboard, OrbitCard, SectionCard, TrafficCard } from "@/components/overview/story";
+import { DecisionList } from "@/components/requests/decision-list";
+import { ScenarioStories } from "@/components/routing/scenario-stories";
+import { Empty, Skeleton } from "@/components/ui/primitives";
+import { loadConfig } from "@/config/env";
+import { SCENARIOS } from "@/scenarios/scenarios";
 import { overviewData, type DataScope } from "@/server/queries";
-import { cn } from "@/lib/format";
+import { cn, formatCount, formatUsd } from "@/lib/format";
 
 export default function OverviewPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   return (
-    <div className="mx-auto max-w-[1440px]">
+    <div className="mx-auto max-w-[1400px]">
       <Suspense fallback={<OverviewSkeleton />}>
         <Overview searchParams={searchParams} />
       </Suspense>
@@ -21,62 +21,92 @@ export default function OverviewPage({ searchParams }: { searchParams: Promise<{
   );
 }
 
+const plural = (n: number, one: string, many = `${one}s`) => `${formatCount(n)} ${n === 1 ? one : many}`;
+
 async function Overview({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   const portfolio = loadConfig().deployment.mode === "portfolio";
   // The public demo has no real executions to filter to.
   const scope: DataScope = !portfolio && (await searchParams).data === "real" ? "real" : "all";
   const d = await overviewData(scope);
+  const m = d.metrics;
+  const stopped = m.blocked + m.failed;
+  const story = m.total
+    ? `${plural(m.total, "request")} this week. ${formatCount(m.local)} stayed on-device, ${formatCount(m.cloud)} went to approved cloud models and ${formatCount(stopped)} ${stopped === 1 ? "was" : "were"} stopped by policy. ${plural(m.reviewsRequired, "output")} ${m.reviewsRequired === 1 ? "was" : "were"} held for a person.`
+    : "No requests in the last 7 days. Route one to see the decision, the reasons and the cost.";
+  const actual = m.externalSpendUsd + m.simulatedSpendUsd;
+  const saved = m.baselineSpendUsd > 0 ? Math.max(0, Math.round((1 - actual / m.baselineSpendUsd) * 100)) : 0;
+  const seedNote =
+    scope === "all" && m.seedExecutions > 0
+      ? `Includes ${plural(m.seedExecutions, "seeded demo request")}: routed by the real engine, with simulated execution.${portfolio ? "" : ` ${plural(m.realExecutions, "real execution")} in this range.`}`
+      : null;
+
   return (
-    <>
-      <PageHeader
-        title="AI Operations Overview"
-        description="Hybrid routing between on-device models and cloud models, governed by data classification, cost, quality and latency."
-        actions={
-          <>
-            {portfolio ? null : <ScopeToggle scope={scope} />}
-            <span className="inline-flex h-7 items-center rounded-md border border-line bg-surface px-2.5 text-xs text-fg-2">Last 7 days</span>
-            <Link href="/route" className="inline-flex h-7 items-center gap-1.5 rounded-md bg-fg px-2.5 text-xs font-medium text-bg hover:opacity-90">
-              <Route className="size-3.5" /> Route a task
-            </Link>
-          </>
-        }
-      />
-      {portfolio ? <PortfolioIntro /> : null}
-      {scope === "all" && d.metrics.seedExecutions > 0 ? (
-        <div className="hatch mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warn/30 px-3.5 py-2 text-xs text-fg-2">
-          <FlaskConical className="size-3.5 text-warn-fg" />
-          <span>
-            Includes <span className="tnum font-medium text-fg">{d.metrics.seedExecutions}</span> seeded demo requests: routed by the real engine, execution simulated and labeled DEMO.{" "}
-            {portfolio ? (
-              "Requests you run here are routed and simulated the same way."
-            ) : (
-              <>
-                <span className="tnum font-medium text-fg">{d.metrics.realExecutions}</span> real execution{d.metrics.realExecutions === 1 ? "" : "s"} in this range.
-              </>
-            )}
-          </span>
-          {portfolio ? null : (
-            <Link href="/?data=real" className="ml-auto font-medium text-fg hover:underline">
-              Show real only
-            </Link>
-          )}
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <div className="flex xl:col-span-7">
+          <HeroCard
+            story={story}
+            seedNote={seedNote}
+            portfolio={portfolio}
+            action={portfolio ? null : <ScopeToggle scope={scope} />}
+            stats={[
+              { value: `${saved}%`, label: "lower API spend" },
+              { value: formatCount(m.policyBlockedRequests), label: "kept off the cloud" },
+              { value: formatUsd(m.externalSpendUsd), label: "paid API spend" },
+            ]}
+          />
         </div>
-      ) : null}
+        <div className="flex xl:col-span-5 [&>section]:w-full">
+          <OrbitCard m={m} />
+        </div>
+      </div>
 
-      <KpiStrip m={d.metrics} baselineName={d.baselineName} />
+      <DestinationTiles m={m} daily={d.daily} />
 
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <LocationChart daily={d.daily} metrics={d.metrics} />
-        <LocalAiPanel />
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <div className="xl:col-span-8">
+          <TrafficCard daily={d.daily} m={m} />
+        </div>
+        <div className="flex xl:col-span-4 [&>section]:w-full">
+          <EconomicsCard m={m} baselineName={d.baselineName} portfolio={portfolio} />
+        </div>
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <RoutingDistribution rows={d.distribution} metrics={d.metrics} baselineName={d.baselineName} />
-        <GovernanceFeed events={d.events} />
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <div className="xl:col-span-7">
+          <GovernanceTiles m={m} />
+        </div>
+        <div className="xl:col-span-5">
+          <Leaderboard rows={d.distribution} />
+        </div>
       </div>
-      <div className="mt-4">
-        <RecentRequests rows={d.recent} />
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <SectionCard
+          id="recent-title"
+          title="Recent decisions"
+          sub="Where each request went, and what it cost"
+          i={10}
+          className="xl:col-span-8"
+          action={
+            <Link href="/requests" className="inline-flex items-center gap-1 text-sm font-medium text-brand-ink hover:underline">
+              All decisions <ArrowRight className="size-3.5" />
+            </Link>
+          }
+        >
+          {d.recent.length ? <DecisionList rows={d.recent.slice(0, 6)} showSource={!portfolio} /> : <Empty title="No requests yet">Route a request to see it here.</Empty>}
+        </SectionCard>
+        <div className="flex xl:col-span-4 [&>section]:w-full">
+          <LocalAiPanel />
+        </div>
       </div>
-    </>
+
+      <SectionCard id="scenarios-title" title="See it decide" sub="Six situations, one routing engine. Each runs the real engine and policy." i={11}>
+        <div className="px-6 pb-6">
+          <ScenarioStories scenarios={SCENARIOS} className="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" />
+        </div>
+      </SectionCard>
+    </div>
   );
 }
 
@@ -84,34 +114,32 @@ function ScopeToggle({ scope }: { scope: DataScope }) {
   const item = (value: DataScope, label: string) => (
     <Link
       href={value === "real" ? "/?data=real" : "/"}
-      className={cn("rounded-[5px] px-2 py-1 text-xs transition-colors", scope === value ? "bg-surface-3 text-fg" : "text-fg-3 hover:text-fg")}
+      aria-current={scope === value ? "page" : undefined}
+      className={cn("rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors", scope === value ? "bg-white text-[#24178f]" : "text-white hover:bg-white/10")}
     >
       {label}
     </Link>
   );
+  // Sits on the hero's lit corner, so it carries its own dark glass for contrast.
   return (
-    <div className="inline-flex h-7 items-center gap-0.5 rounded-md border border-line bg-surface p-0.5">
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-white/15 bg-[#1d1567]/60 p-1 backdrop-blur-sm" role="group" aria-label="Data scope">
       {item("all", "All data")}
-      {item("real", "Real executions")}
+      {item("real", "Real only")}
     </div>
   );
 }
 
 function OverviewSkeleton() {
   return (
-    <div>
-      <div className="mb-5 space-y-2">
-        <Skeleton className="h-6 w-64" />
-        <Skeleton className="h-4 w-[420px] max-w-full" />
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <Skeleton className="h-[440px] rounded-3xl xl:col-span-7" />
+        <Skeleton className="h-[440px] rounded-3xl xl:col-span-5" />
       </div>
-      <Skeleton className="h-[104px] w-full rounded-lg" />
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Skeleton className="h-[290px] rounded-lg" />
-        <Skeleton className="h-[290px] rounded-lg" />
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Skeleton className="h-[260px] rounded-lg" />
-        <Skeleton className="h-[260px] rounded-lg" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-[210px] rounded-3xl" />
+        ))}
       </div>
     </div>
   );

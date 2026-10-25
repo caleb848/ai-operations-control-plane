@@ -1,151 +1,94 @@
 "use client";
 
-import { BadgeCheck, Boxes, FlaskConical, LayoutDashboard, ListTree, Route, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
-import { StatusDot } from "@/components/ui/badges";
-import { Skeleton } from "@/components/ui/primitives";
-import { cn, formatMs } from "@/lib/format";
+import { cn } from "@/lib/format";
 import { Logo } from "./logo";
-import { useDeployment } from "./deployment-context";
+import { isActive, NAV } from "./nav";
 import { useStatus } from "./status-context";
+import { EnvironmentCard, ThemeToggle } from "./topbar";
 
-const NAV = [
-  {
-    group: "Operate",
-    items: [
-      { href: "/", label: "Overview", icon: LayoutDashboard },
-      { href: "/route", label: "Route a task", icon: Route },
-      { href: "/compare", label: "Comparison Lab", icon: FlaskConical },
-      { href: "/requests", label: "Requests", icon: ListTree },
-      { href: "/approvals", label: "Approvals", icon: BadgeCheck, count: "approvals" as const },
-    ],
-  },
-  {
-    group: "Govern",
-    items: [
-      { href: "/governance", label: "Policies", icon: ShieldCheck },
-      { href: "/models", label: "Model registry", icon: Boxes },
-      { href: "/budget", label: "Budget", icon: Wallet },
-    ],
-  },
-];
-
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function Sidebar() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-12 items-center gap-2.5 px-4">
-        <Logo />
-        <div className="leading-tight">
-          <div className="text-sm font-semibold tracking-[-0.01em] text-fg">Control Plane</div>
-          <div className="text-2xs text-fg-3">AI Operations · Demo workspace</div>
+    <div className="card flex h-full flex-col overflow-hidden !rounded-[28px]">
+      <div className="pointer-events-none absolute -left-16 -top-20 size-56 rounded-full bg-brand/25 blur-3xl" aria-hidden />
+      <Link href="/" className="relative mx-3 mt-3 flex items-center gap-3 rounded-2xl px-2.5 py-2.5 transition-colors hover:bg-surface-2/70">
+        <Logo size={36} />
+        <div className="min-w-0 leading-tight">
+          <div className="font-display text-lg font-semibold text-fg">Control Plane</div>
+          <div className="text-xs text-fg-3">AI traffic control</div>
         </div>
-      </div>
+      </Link>
 
-      <nav className="scrollbar-thin flex-1 overflow-y-auto px-2 pt-3">
+      <nav aria-label="Primary" className="scrollbar-thin relative mt-5 flex-1 overflow-y-auto px-3">
         {/* usePathname suspends on dynamic routes during prerender; the fallback renders the same links unhighlighted. */}
-        <Suspense fallback={<NavLinks pathname={null} onNavigate={onNavigate} />}>
-          <ActiveNav onNavigate={onNavigate} />
+        <Suspense fallback={<NavLinks pathname={null} />}>
+          <ActiveNav />
         </Suspense>
       </nav>
 
-      <LocalAiCard />
+      <div className="relative space-y-2 p-3">
+        <EnvironmentCard />
+        <div className="flex items-center justify-between px-1.5">
+          <span className="text-xs text-fg-3">Theme</span>
+          <ThemeToggle className="size-8" />
+        </div>
+      </div>
     </div>
   );
 }
 
-function ActiveNav({ onNavigate }: { onNavigate?: () => void }) {
-  return <NavLinks pathname={usePathname()} onNavigate={onNavigate} />;
+function ActiveNav() {
+  return <NavLinks pathname={usePathname()} />;
 }
 
-function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigate?: () => void }) {
+export function NavLinks({ pathname, onNavigate, large }: { pathname: string | null; onNavigate?: () => void; large?: boolean }) {
   const { status } = useStatus();
-  const active = (href: string) => pathname !== null && (href === "/" ? pathname === "/" : pathname.startsWith(href));
   return (
     <>
-        {NAV.map((g) => (
-          <div key={g.group} className="mb-4">
-            <div className="px-2 pb-1 text-2xs font-medium uppercase tracking-[0.08em] text-fg-4">{g.group}</div>
+      {NAV.map((g, gi) => (
+        <div key={g.group ?? gi} className={cn(gi > 0 && "mt-6")}>
+          {g.group ? <div className="eyebrow mb-2 px-3">{g.group}</div> : null}
+          <ul className="space-y-1">
             {g.items.map((item) => {
               const Icon = item.icon;
-              const isActive = active(item.href);
+              const active = isActive(pathname, item.href);
               const count = item.count === "approvals" ? status?.pendingApprovals : undefined;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={cn(
-                    "group mb-px flex h-8 items-center gap-2.5 rounded-md px-2 text-sm transition-colors",
-                    isActive ? "bg-surface-3 text-fg" : "text-fg-2 hover:bg-surface-2 hover:text-fg",
-                  )}
-                >
-                  <Icon className={cn("size-4", isActive ? "text-fg" : "text-fg-3 group-hover:text-fg-2")} strokeWidth={1.75} />
-                  <span className="flex-1">{item.label}</span>
-                  {count ? (
-                    <span className="tnum rounded bg-warn-soft px-1.5 text-2xs font-medium leading-[18px] text-warn-fg">{count}</span>
-                  ) : null}
-                </Link>
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-2xl px-2 transition-colors duration-[var(--dur-fast)]",
+                      large ? "h-13 text-md" : "h-11 text-base",
+                      active ? "bg-brand-soft text-fg" : "text-fg-2 hover:bg-surface-2/80 hover:text-fg",
+                    )}
+                  >
+                    {active ? <span className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-brand shadow-[0_0_14px_var(--brand)]" aria-hidden /> : null}
+                    <span
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors duration-[var(--dur-fast)]",
+                        active ? "btn-brand text-white" : "text-fg-3 group-hover:text-fg-2",
+                      )}
+                    >
+                      <Icon className="size-[18px]" strokeWidth={1.8} />
+                    </span>
+                    <span className="flex-1 truncate font-medium">{item.label}</span>
+                    {count ? (
+                      <span className="tnum inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-review-line bg-review-soft px-1.5 text-xs font-semibold text-review-ink" aria-label={`${count} pending`}>
+                        {count}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
               );
             })}
-          </div>
-        ))}
+          </ul>
+        </div>
+      ))}
     </>
   );
 }
-
-function LocalAiCard() {
-  const { status } = useStatus();
-  const { portfolio } = useDeployment();
-  if (portfolio) {
-    return (
-      <Link href="/about" className="m-3 block rounded-lg border border-line bg-surface-2 p-3 transition-colors hover:border-line-strong">
-        <div className="flex items-center justify-between">
-          <span className="text-2xs font-medium uppercase tracking-[0.08em] text-fg-3">Local AI</span>
-          <span className="text-xs font-medium text-warn-fg">Simulated</span>
-        </div>
-        <div className="mt-2 text-sm font-medium text-fg">Gemma 4 12B · Qwen 3.5 9B</div>
-        <div className="text-xs text-fg-3">Reference models from the developer&apos;s Mac</div>
-        <p className="mt-2.5 border-t border-line pt-2 text-2xs leading-4 text-fg-3">
-          On a local install these run through Ollama at $0.00 API cost. This public demo cannot reach any machine.
-        </p>
-      </Link>
-    );
-  }
-  if (!status) {
-    return (
-      <div className="m-3 space-y-2 rounded-lg border border-line bg-surface-2 p-3">
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-3 w-20" />
-      </div>
-    );
-  }
-  const online = status.ollama.status === "online";
-  const primary = status.localModels.find((m) => m.id === status.primaryLocalId);
-  return (
-    <Link href="/models" className="m-3 block rounded-lg border border-line bg-surface-2 p-3 transition-colors hover:border-line-strong">
-      <div className="flex items-center justify-between">
-        <span className="text-2xs font-medium uppercase tracking-[0.08em] text-fg-3">Local AI</span>
-        <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium", online ? "text-ok-fg" : "text-danger-fg")}>
-          <StatusDot status={online ? "online" : "offline"} pulse />
-          {online ? "Online" : "Offline"}
-        </span>
-      </div>
-      <div className="mt-2 truncate text-sm font-medium text-fg">{primary?.displayName ?? "No local model"}</div>
-      <div className="truncate text-xs text-fg-3">
-        Ollama{status.ollama.version ? ` ${status.ollama.version}` : ""} · {primary?.resident ? "resident" : online ? "idle" : "not reachable"}
-      </div>
-      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-line pt-2 text-2xs">
-        <span className="text-fg-3">External API cost</span>
-        <span className="tnum text-right text-fg">$0.00</span>
-        <span className="text-fg-3">Median latency</span>
-        <span className="tnum text-right text-fg">{formatMs(status.local.medianLatencyMs)}</span>
-        <span className="text-fg-3">Requests today</span>
-        <span className="tnum text-right text-fg">{status.local.today}</span>
-      </div>
-    </Link>
-  );
-}
-

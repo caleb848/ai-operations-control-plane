@@ -9,12 +9,13 @@ export const metadata: Metadata = { title: "Policies" };
 
 export default function GovernancePage() {
   return (
-    <div className="mx-auto max-w-[1440px]">
+    <div className="mx-auto max-w-[1280px]">
       <PageHeader
-        title="Governance policies"
-        description="Local-first data policy. Each classification decides whether work may leave the device, which providers are approved, and when a person must review the output."
+        eyebrow="Governance"
+        title={<>Data decides where AI is <span className="text-brand">allowed to run.</span></>}
+        description="Each classification sets whether work may leave the device, which providers are approved, and when a person must review the output. When the rules can't be met, the system fails closed."
       />
-      <Suspense fallback={<Skeleton className="h-[640px] w-full rounded-lg" />}>
+      <Suspense fallback={<Skeleton className="h-[640px] w-full rounded-2xl" />}>
         <Editor />
       </Suspense>
     </div>

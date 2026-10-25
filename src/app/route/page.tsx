@@ -6,19 +6,20 @@ import { Skeleton } from "@/components/ui/primitives";
 import { loadConfig } from "@/config/env";
 import { SCENARIOS } from "@/scenarios/scenarios";
 
-export const metadata: Metadata = { title: "Route a task" };
+export const metadata: Metadata = { title: "Route a request" };
 
 export default function RoutePage({ searchParams }: { searchParams: Promise<{ scenario?: string }> }) {
   const portfolio = loadConfig().deployment.mode === "portfolio";
   return (
-    <div className="mx-auto max-w-[1600px]">
+    <div className="mx-auto max-w-[1280px]">
       <PageHeader
-        title="Route a task"
-        description={`Every request is classified, checked against policy and scored across local and cloud models before anything runs. ${
-          portfolio ? "In this public demo, execution is simulated." : "Local models execute for real on this device."
-        }`}
+        size="lg"
+        eyebrow="Route a request"
+        title={<>Where should this AI request <span className="text-brand">run?</span></>}
+        description="Every request is classified, checked against policy and weighed on capability and cost before anything runs. Then it goes to the right place, with the reason."
+        note={portfolio ? "On this public site the routing is real; model execution is simulated." : undefined}
       />
-      <Suspense fallback={<Skeleton className="h-[720px] w-full rounded-lg" />}>
+      <Suspense fallback={<Skeleton className="h-[720px] w-full rounded-2xl" />}>
         <Console searchParams={searchParams} />
       </Suspense>
     </div>
